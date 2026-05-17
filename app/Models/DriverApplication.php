@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class DriverApplication extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'phone',
+        'vehicle_type',
+        'plate_number',
+        'address',
+        'latitude',
+        'longitude',
+        'status',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}
