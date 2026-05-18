@@ -3,14 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Driver;
 
 class Order extends Model
 {
     protected $fillable = [
         'user_id',
+        'restaurant_id',
+        'driver_id',
         'total',
         'status',
+        'merchant_status',
+        'driver_status',
+        'driver_reject_count',
     ];
 
     public function items()
@@ -18,21 +22,18 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function orders()
-{
-    $orders = Order::where('user_id', Auth::id())
-        ->latest()
-        ->get();
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
-    return view('cart.orders', compact('orders'));
-}
-public function user()
-{
-    return $this->belongsTo(User::class);
-}
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class);
+    }
 
-public function driver()
-{
-    return $this->belongsTo(Driver::class);
-}
+    public function restaurant()
+    {
+        return $this->belongsTo(Restaurant::class);
+    }
 }

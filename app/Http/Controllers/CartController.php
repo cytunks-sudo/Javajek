@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Food;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Driver;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Driver;
+
 
 class CartController extends Controller
 {
@@ -83,8 +84,8 @@ class CartController extends Controller
 
         if ($restaurant && $restaurant->latitude && $restaurant->longitude) {
             $driver = Driver::where('status', 'online')
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
+    ->whereNotNull('latitude')
+    ->whereNotNull('longitude')
                 ->selectRaw("
                     *,
                     (6371 * acos(
@@ -103,13 +104,16 @@ class CartController extends Controller
                 ->first();
         }
 
-        $order = Order::create([
-            'user_id' => Auth::id(),
-            'restaurant_id' => $restaurant ? $restaurant->id : null,
-            'driver_id' => $driver ? $driver->id : null,
-            'total' => $total,
-            'status' => 'pending',
-        ]);
+       $order = Order::create([
+    'user_id' => Auth::id(),
+    'restaurant_id' => $restaurant ? $restaurant->id : null,
+    'driver_id' => $driver ? $driver->id : null,
+    'total' => $total,
+    'status' => $driver ? 'waiting_response' : 'searching_driver',
+    'merchant_status' => 'pending',
+    'driver_status' => $driver ? 'pending' : 'rejected',
+    'driver_reject_count' => 0,
+]);
 
         foreach ($cart as $item) {
             OrderItem::create([
@@ -120,12 +124,7 @@ class CartController extends Controller
             ]);
         }
 
-        if ($driver) {
-            $driver->update([
-                'status' => 'busy',
-            ]);
-        }
-
+       
         session()->forget('cart');
 
         return redirect('/my-orders');

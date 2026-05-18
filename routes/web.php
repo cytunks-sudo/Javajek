@@ -13,6 +13,10 @@ use App\Http\Controllers\AdminDriverController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DriverApplicationController;
+use App\Http\Controllers\MerchantController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\AdminMerchantController;
+use App\Http\Controllers\NotificationController;
 
 
 /*
@@ -28,23 +32,22 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
-
+Route::get('/notifications/count', [NotificationController::class, 'count']);
     Route::get('/cart', [CartController::class, 'index']);
     Route::get('/cart/add/{id}', [CartController::class, 'add']);
     Route::get('/cart/remove/{id}', [CartController::class, 'remove']);
     Route::get('/cart/clear', [CartController::class, 'clear']);
     Route::get('/checkout', [CartController::class, 'checkout']);
     Route::get('/my-orders', [CartController::class, 'orders']);
-
-    Route::get('/customer', function () {
-        return redirect('/');
-    });
+    Route::get('/my-orders/{id}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('/customer', function () { return redirect('/');  });
     Route::get('/apply-driver', [DriverApplicationController::class, 'create']);
-Route::post('/apply-driver', [DriverApplicationController::class, 'store']);
+    Route::post('/apply-driver', [DriverApplicationController::class, 'store']);
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
+    Route::get('/apply-merchant', [MerchantController::class, 'create']);
+    Route::post('/apply-merchant', [MerchantController::class, 'store']);
 });
 
 /*
@@ -79,7 +82,9 @@ Route::middleware(['role.redirect:admin'])->group(function () {
     Route::get('/restaurants/{id}/edit', [RestaurantController::class, 'edit']);
     Route::post('/restaurants/{id}/update', [RestaurantController::class, 'update']);
     Route::get('/restaurants/{id}/delete', [RestaurantController::class, 'destroy']);
-
+    Route::get('/admin/merchant-applications', [AdminMerchantController::class, 'index']);
+    Route::get('/admin/merchant-applications/{id}/approve', [AdminMerchantController::class, 'approve']);
+    Route::get('/admin/merchant-applications/{id}/reject', [AdminMerchantController::class, 'reject']);
     Route::get('/foods', [FoodController::class, 'index']);
     Route::get('/foods/create', [FoodController::class, 'create']);
     Route::post('/foods/store', [FoodController::class, 'store']);
@@ -92,7 +97,7 @@ Route::middleware(['role.redirect:admin'])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['role.redirect:driver'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     Route::get('/driver', [DriverController::class, 'dashboard']);
     Route::get('/driver/order/{id}/status/{status}', [DriverController::class, 'updateOrderStatus']);
@@ -109,11 +114,20 @@ Route::middleware(['role.redirect:driver'])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['role.redirect:merchant'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     Route::get('/merchant', [MerchantController::class, 'dashboard']);
+    Route::post('/merchant/restaurants/{id}/hours', [MerchantController::class, 'updateHours']);
+    Route::get('/merchant/foods/create', [MerchantController::class, 'createFood']);
+    Route::post('/merchant/foods/store', [MerchantController::class, 'storeFood']);
+    Route::get('/merchant/orders/{id}/accept', [MerchantController::class, 'acceptOrder']);
+    Route::get('/merchant/orders/{id}/reject', [MerchantController::class, 'rejectOrder']);
+    Route::get('/merchant/restaurants/{id}/edit', [MerchantController::class, 'editRestaurant']);
+    Route::post('/merchant/restaurants/{id}/update', [MerchantController::class, 'updateRestaurant']);
+    Route::get('/merchant/restaurants/{id}/toggle-open', [MerchantController::class, 'toggleOpen']);
+    Route::get('/merchant/restaurants/{id}/toggle-open', [MerchantController::class, 'toggleOpen']);
 
-});
+    });
 
 /*
 |--------------------------------------------------------------------------
