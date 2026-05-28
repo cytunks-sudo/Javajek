@@ -319,7 +319,10 @@
             <span>📦 Order</span>
             <span class="menu-badge">Live</span>
         </a>
-
+        <a href="/admin/delivery-setting"
+   class="{{ request()->is('admin/delivery-setting') ? 'active' : '' }}">
+    🚚 Setting Ongkir
+</a>
         <div class="menu-title">Restoran & Menu</div>
         <a href="/restaurants">🏪 Restoran</a>
         <a href="/foods">🍔 Menu Makanan</a>

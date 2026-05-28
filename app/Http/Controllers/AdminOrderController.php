@@ -18,11 +18,16 @@ class AdminOrderController extends Controller
     }
 public function assignDriver(Request $request, $id)
 {
+    $request->validate([
+        'driver_id' => 'required|exists:drivers,id',
+    ]);
+
     $order = Order::findOrFail($id);
 
     $order->update([
         'driver_id' => $request->driver_id,
-        'status' => 'delivery',
+        'status' => 'waiting_response',
+        'driver_status' => 'pending',
     ]);
 
     Driver::where('id', $request->driver_id)
@@ -30,21 +35,7 @@ public function assignDriver(Request $request, $id)
             'status' => 'busy',
         ]);
 
-    return redirect('/admin/orders');
+    return redirect('/admin/orders')
+        ->with('success', 'Driver berhasil ditugaskan.');
 }
-    public function updateStatus($id, $status)
-    {
-        $allowed = ['pending', 'accepted', 'delivery', 'completed', 'cancelled'];
-
-        if (!in_array($status, $allowed)) {
-            abort(404);
-        }
-
-        $order = Order::findOrFail($id);
-        $order->update([
-            'status' => $status,
-        ]);
-
-        return redirect('/admin/orders');
-    }
 }

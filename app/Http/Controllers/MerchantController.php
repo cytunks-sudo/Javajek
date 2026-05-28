@@ -7,6 +7,7 @@ use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Food;
+use App\Models\Driver;
 
 class MerchantController extends Controller
 {
@@ -35,7 +36,14 @@ class MerchantController extends Controller
 
         return view('merchant.dashboard', compact('restaurants', 'orders'));
     }
+public function foods()
+{
+    $restaurants = \App\Models\Restaurant::with('foods')
+        ->where('status', 'active')
+        ->get();
 
+    return view('merchant.foods', compact('restaurants'));
+}
     public function create()
     {
         return view('merchant.apply');
@@ -96,24 +104,25 @@ class MerchantController extends Controller
     }
 
     public function rejectOrder($id)
-    {
-        $order = Order::whereHas('restaurant', function ($q) {
-                $q->where('owner_id', Auth::id());
-            })
-            ->findOrFail($id);
+{
+    $order = Order::findOrFail($id);
 
-        if ($order->driver_status == 'accepted') {
-            return redirect('/merchant')
-                ->with('error', 'Driver sudah menerima pesanan. Hubungi driver terlebih dahulu sebelum membatalkan.');
-        }
+    $order->update([
+        'merchant_status' => 'rejected',
+        'driver_status' => 'rejected',
+        'status' => 'cancelled',
+    ]);
 
-        $order->update([
-            'merchant_status' => 'rejected',
-            'status' => 'merchant_rejected',
+    if ($order->driver_id) {
+        Driver::where('id', $order->driver_id)->update([
+            'status' => 'online',
         ]);
-
-        return redirect('/merchant')->with('success', 'Pesanan ditolak merchant.');
     }
+
+    return redirect('/merchant')->with('success', 'Pesanan ditolak dan dibatalkan.');
+}
+
+
     public function updateHours(Request $request, $id)
 {
     $request->validate([
@@ -240,5 +249,17 @@ public function toggleOpen($id)
 
     return redirect('/merchant')
         ->with('success', $restaurant->manual_closed ? 'Merchant ditutup manual.' : 'Merchant dibuka kembali.');
+}
+public function notifCount()
+{
+    $user = auth()->user();
+
+    $count = \App\Models\Order::where('restaurant_id', $user->id)
+        ->where('merchant_status', 'pending')
+        ->count();
+
+    return response()->json([
+        'count' => $count
+    ]);
 }
 }

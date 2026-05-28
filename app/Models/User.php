@@ -40,6 +40,8 @@ class User extends Authenticatable
     'latitude',
     'longitude',
     'photo',
+    'notif_sound_mode',
+    'notif_sound_file',
 ];
 public function restaurants()
 {

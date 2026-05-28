@@ -17,6 +17,8 @@ use App\Http\Controllers\MerchantController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\AdminMerchantController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationSettingController;
+use App\Http\Controllers\AdminDeliverySettingController;
 
 
 /*
@@ -26,13 +28,11 @@ use App\Http\Controllers\NotificationController;
 */
 
 Route::get('/', [HomeController::class, 'index'])->middleware('auth');
-
-Route::get('/dashboard', function () {
-    return redirect('/');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', function () { return redirect('/');})
+->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
-Route::get('/notifications/count', [NotificationController::class, 'count']);
+    Route::get('/notifications/count', [NotificationController::class, 'count']);
     Route::get('/cart', [CartController::class, 'index']);
     Route::get('/cart/add/{id}', [CartController::class, 'add']);
     Route::get('/cart/remove/{id}', [CartController::class, 'remove']);
@@ -48,7 +48,13 @@ Route::get('/notifications/count', [NotificationController::class, 'count']);
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/apply-merchant', [MerchantController::class, 'create']);
     Route::post('/apply-merchant', [MerchantController::class, 'store']);
-});
+    Route::post('/notification-setting/update', [NotificationSettingController::class, 'update'])
+    ->name('notification.setting.update');
+    Route::get('/cart/increase/{id}', [CartController::class, 'increase']);
+    Route::get('/cart/decrease/{id}', [CartController::class, 'decrease']);
+
+
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -88,6 +94,8 @@ Route::middleware(['role.redirect:admin'])->group(function () {
     Route::get('/foods', [FoodController::class, 'index']);
     Route::get('/foods/create', [FoodController::class, 'create']);
     Route::post('/foods/store', [FoodController::class, 'store']);
+    Route::get('/admin/delivery-setting', [AdminDeliverySettingController::class, 'edit']);
+    Route::post('/admin/delivery-setting', [AdminDeliverySettingController::class, 'update']);
 
 });
 
@@ -98,12 +106,14 @@ Route::middleware(['role.redirect:admin'])->group(function () {
 */
 
 Route::middleware(['auth'])->group(function () {
-
+    
+    Route::get('/driver/notif-count', [DriverController::class, 'notifCount']);
     Route::get('/driver', [DriverController::class, 'dashboard']);
     Route::get('/driver/order/{id}/status/{status}', [DriverController::class, 'updateOrderStatus']);
     Route::get('/driver/status/{status}', [DriverController::class, 'setStatus']);
     Route::get('/driver/order/{id}/accept', [DriverController::class, 'acceptOrder']);
     Route::get('/driver/order/{id}/reject', [DriverController::class, 'rejectOrder']);
+    Route::post('/driver/location/update', [DriverController::class, 'updateLocation']);
 
 });
 
@@ -125,7 +135,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/merchant/restaurants/{id}/edit', [MerchantController::class, 'editRestaurant']);
     Route::post('/merchant/restaurants/{id}/update', [MerchantController::class, 'updateRestaurant']);
     Route::get('/merchant/restaurants/{id}/toggle-open', [MerchantController::class, 'toggleOpen']);
-    Route::get('/merchant/restaurants/{id}/toggle-open', [MerchantController::class, 'toggleOpen']);
+    Route::get('/merchant/notif-count', [MerchantController::class, 'notifCount']);
+    Route::get('/merchant/foods', [MerchantController::class, 'foods']);
 
     });
 
