@@ -1,8 +1,27 @@
+@php
+    $appSetting = \App\Models\AppSetting::first();
+
+    $primaryColor = $appSetting->primary_color ?? '#f97316';
+    $secondaryColor = $appSetting->secondary_color ?? '#fb923c';
+
+    $logo = null;
+
+    if (($pageTitle ?? '') == 'Driver') {
+        $logo = $appSetting?->driver_logo;
+    } elseif (($pageTitle ?? '') == 'Merchant') {
+        $logo = $appSetting?->merchant_logo;
+    } else {
+        $logo = $appSetting?->customer_logo;
+    }
+
+    $appName = $appSetting->app_name ?? 'JavaJek';
+@endphp
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>{{ $title ?? 'JavaJek' }}</title>
+    <title>{{ $title ?? $appName }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
@@ -12,6 +31,11 @@
 
     <style>
         *{box-sizing:border-box}
+
+        :root{
+            --primary: {{ $primaryColor }};
+            --secondary: {{ $secondaryColor }};
+        }
 
         body{
             margin:0;
@@ -24,7 +48,7 @@
             position:sticky;
             top:0;
             z-index:999;
-            background:linear-gradient(135deg,#ff6b00,#ff8a1f);
+            background:linear-gradient(135deg,var(--primary),var(--secondary));
             color:white;
             padding:14px;
             display:flex;
@@ -34,10 +58,10 @@
         }
 
         .app-back{
-            width:40px;
-            height:40px;
-            border-radius:14px;
-            background:rgba(255,255,255,.2);
+            width:42px;
+            height:42px;
+            border-radius:15px;
+            background:rgba(255,255,255,.22);
             color:white;
             display:flex;
             align-items:center;
@@ -46,9 +70,21 @@
             font-weight:900;
         }
 
-        .app-title{
+        .app-title-box{
+            display:flex;
+            align-items:center;
+            gap:10px;
             font-weight:900;
             font-size:16px;
+        }
+
+        .app-logo{
+            width:34px;
+            height:34px;
+            border-radius:12px;
+            object-fit:cover;
+            background:white;
+            padding:3px;
         }
 
         main{
@@ -73,10 +109,15 @@
             outline:none;
         }
 
+        .form-control:focus{
+            border-color:var(--primary);
+            box-shadow:0 0 0 4px rgba(249,115,22,.13);
+        }
+
         .btn-order,
         .btn-mini{
             border:none;
-            background:#f97316;
+            background:var(--primary);
             color:white;
             padding:10px 14px;
             border-radius:14px;
@@ -89,6 +130,7 @@
         .btn-mini.green{background:#16a34a}
         .btn-mini.red{background:#dc2626}
         .btn-mini.blue{background:#0ea5e9}
+        .btn-mini.orange{background:var(--primary)}
 
         @media(max-width:640px){
             main{padding:14px 12px 90px}
@@ -101,8 +143,18 @@
 
 <div class="app-topbar">
     <a href="{{ $backUrl ?? '/' }}" class="app-back">←</a>
-    <div class="app-title">{{ $pageTitle ?? 'JavaJek' }}</div>
-    <div style="width:40px;"></div>
+
+    <div class="app-title-box">
+        @if($logo)
+            <img src="{{ asset('storage/'.$logo) }}" class="app-logo">
+        @else
+            <img src="{{ asset('images/logo-javajek.png') }}" class="app-logo">
+        @endif
+
+        <span>{{ $pageTitle ?? $appName }}</span>
+    </div>
+
+    <div style="width:42px;"></div>
 </div>
 
 <main>

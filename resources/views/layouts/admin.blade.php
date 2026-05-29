@@ -99,6 +99,18 @@
             transform:translateX(4px);
         }
 
+        .sidebar a.active-menu{
+            background:white;
+            color:#f97316;
+            transform:translateX(4px);
+            box-shadow:0 10px 24px rgba(255,255,255,.22);
+        }
+
+        .sidebar a.active-menu .menu-badge{
+            background:#f97316;
+            color:white;
+        }
+
         .menu-badge{
             background:white;
             color:#f97316;
@@ -314,30 +326,81 @@
         </div>
 
         <div class="menu-title">Utama</div>
-        <a href="/admin">📊 Dashboard</a>
-        <a href="/admin/orders">
+
+        <a href="/admin"
+           class="{{ request()->is('admin') ? 'active-menu' : '' }}">
+            <span>📊 Dashboard</span>
+        </a>
+
+        <a href="/admin/orders"
+           class="{{ request()->is('admin/orders*') ? 'active-menu' : '' }}">
             <span>📦 Order</span>
             <span class="menu-badge">Live</span>
         </a>
-        <a href="/admin/delivery-setting"
-   class="{{ request()->is('admin/delivery-setting') ? 'active' : '' }}">
+
+        <div class="menu-title">Pengaturan</div>
+
+<a href="/admin/app-appearance">
+    🎨 Tampilan Aplikasi
+</a>
+
+<a href="/admin/delivery-setting">
     🚚 Setting Ongkir
 </a>
+
+<a href="/admin/ride-setting">
+    🏍️ Tarif Ojek
+</a>
+
         <div class="menu-title">Restoran & Menu</div>
-        <a href="/restaurants">🏪 Restoran</a>
-        <a href="/foods">🍔 Menu Makanan</a>
+
+        <a href="/restaurants"
+           class="{{ request()->is('restaurants*') ? 'active-menu' : '' }}">
+            <span>🏪 Restoran</span>
+        </a>
+
+        <a href="/foods"
+           class="{{ request()->is('foods*') ? 'active-menu' : '' }}">
+            <span>🍔 Menu Makanan</span>
+        </a>
 
         <div class="menu-title">Driver</div>
-        <a href="/admin/drivers">🛵 Driver Aktif</a>
-        <a href="/admin/driver-applications">📝 Pengajuan Driver</a>
-        <a href="/admin/drivers/stopped">⛔ Driver Diberhentikan</a>
-        <a href="/admin/drivers/penalty">⚠️ Driver Penalti</a>
+<a href="{{ route('admin.driver.monitor') }}" class="admin-menu-item">
+    <span>🗺️ Monitoring Driver</span>
+</a>
+        <a href="/admin/drivers"
+           class="{{ request()->is('admin/drivers') ? 'active-menu' : '' }}">
+            <span>🛵 Driver Aktif</span>
+        </a>
+
+        <a href="/admin/driver-applications"
+           class="{{ request()->is('admin/driver-applications*') ? 'active-menu' : '' }}">
+            <span>📝 Pengajuan Driver</span>
+        </a>
+
+        <a href="/admin/drivers/stopped"
+           class="{{ request()->is('admin/drivers/stopped*') ? 'active-menu' : '' }}">
+            <span>⛔ Driver Diberhentikan</span>
+        </a>
+
+        <a href="/admin/drivers/penalty"
+           class="{{ request()->is('admin/drivers/penalty*') ? 'active-menu' : '' }}">
+            <span>⚠️ Driver Penalti</span>
+        </a>
 
         <div class="menu-title">Merchant</div>
-        <a href="/admin/merchant-applications">📝 Pengajuan Merchant</a>
+
+        <a href="/admin/merchant-applications"
+           class="{{ request()->is('admin/merchant-applications*') ? 'active-menu' : '' }}">
+            <span>📝 Pengajuan Merchant</span>
+        </a>
 
         <div class="menu-title">User</div>
-        <a href="/admin/users">👤 User Approval</a>
+
+        <a href="/admin/users"
+           class="{{ request()->is('admin/users*') ? 'active-menu' : '' }}">
+            <span>👤 User Approval</span>
+        </a>
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf
@@ -353,7 +416,7 @@
         <div class="top-content">
             <div>
                 <h2>Admin JavaJek</h2>
-                <p>Kelola order, merchant, driver, restoran, dan user.</p>
+                <p>Kelola order, merchant, driver, restoran, tarif, dan user.</p>
             </div>
         </div>
 

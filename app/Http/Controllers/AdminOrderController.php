@@ -38,4 +38,50 @@ public function assignDriver(Request $request, $id)
     return redirect('/admin/orders')
         ->with('success', 'Driver berhasil ditugaskan.');
 }
+public function updateStatus($id, $status)
+{
+    $allowedStatuses = [
+        'searching_driver',
+        'waiting_response',
+        'driver_to_merchant',
+        'dalam_pengiriman',
+        'driver_to_pickup',
+        'driver_to_destination',
+        'completed',
+        'cancelled',
+    ];
+
+    if (!in_array($status, $allowedStatuses)) {
+        return redirect('/admin/orders')
+            ->with('error', 'Status order tidak valid.');
+    }
+
+    $order = \App\Models\Order::findOrFail($id);
+
+    $order->status = $status;
+
+    if ($status == 'cancelled') {
+        $order->driver_status = 'cancelled';
+        $order->merchant_status = 'cancelled';
+    }
+
+    if ($status == 'completed') {
+        $order->driver_status = 'completed';
+        $order->merchant_status = 'completed';
+    }
+
+    $order->save();
+
+    if ($order->driver_id && in_array($status, ['cancelled', 'completed'])) {
+        $driver = \App\Models\Driver::find($order->driver_id);
+
+        if ($driver) {
+            $driver->status = 'online';
+            $driver->save();
+        }
+    }
+
+    return redirect('/admin/orders')
+        ->with('success', 'Status order berhasil diperbarui.');
+}
 }

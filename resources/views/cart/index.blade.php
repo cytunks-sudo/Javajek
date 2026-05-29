@@ -4,21 +4,12 @@
 
 <div class="cart-header">
     <h2>🛒 Keranjang Pesanan</h2>
-    <p>Produk dikelompokkan berdasarkan merchant.</p>
+    <p>Ongkir akan dihitung setelah pilih lokasi pengiriman.</p>
 </div>
 
 @php
     $groupedCart = collect($cart)->groupBy('restaurant');
     $grandTotal = 0;
-
-    $customerLat = auth()->user()->latitude;
-    $customerLng = auth()->user()->longitude;
-
-    $setting = \App\Models\DeliverySetting::first();
-
-    $baseFee = $setting->base_fee ?? 3000;
-    $perKmFee = $setting->per_km_fee ?? 2000;
-    $minimumFee = $setting->minimum_fee ?? 5000;
 @endphp
 
 @forelse($groupedCart as $restaurant => $items)
@@ -28,38 +19,7 @@
             return $item['price'] * $item['qty'];
         });
 
-        $firstItem = collect($items)->first();
-
-        $distanceKm = 0;
-
-        if (
-            !empty($customerLat) &&
-            !empty($customerLng) &&
-            !empty($firstItem['restaurant_latitude']) &&
-            !empty($firstItem['restaurant_longitude'])
-        ) {
-            $theta = $customerLng - $firstItem['restaurant_longitude'];
-
-            $distanceKm = (
-                acos(
-                    sin(deg2rad($customerLat)) *
-                    sin(deg2rad($firstItem['restaurant_latitude'])) +
-
-                    cos(deg2rad($customerLat)) *
-                    cos(deg2rad($firstItem['restaurant_latitude'])) *
-                    cos(deg2rad($theta))
-                )
-                * 180 / pi()
-            ) * 60 * 1.1515 * 1.609344;
-        }
-
-        $deliveryFee = $baseFee + round($distanceKm * $perKmFee);
-
-        $deliveryFee = max($minimumFee, $deliveryFee);
-
-        $merchantGrandTotal = $merchantTotal + $deliveryFee;
-
-        $grandTotal += $merchantGrandTotal;
+        $grandTotal += $merchantTotal;
     @endphp
 
     <div class="merchant-cart-card">
@@ -96,15 +56,11 @@
                     <h3>{{ $item['name'] }}</h3>
 
                     <div class="qty-control">
-                        <a href="/cart/decrease/{{ $item['id'] }}" class="qty-btn">
-                            −
-                        </a>
+                        <a href="/cart/decrease/{{ $item['id'] }}" class="qty-btn">−</a>
 
                         <span>{{ $item['qty'] }}</span>
 
-                        <a href="/cart/increase/{{ $item['id'] }}" class="qty-btn">
-                            +
-                        </a>
+                        <a href="/cart/increase/{{ $item['id'] }}" class="qty-btn">+</a>
                     </div>
 
                     <div class="cart-bottom">
@@ -130,21 +86,6 @@
                 <b>Rp {{ number_format($merchantTotal) }}</b>
             </div>
 
-            <div>
-                <span>Jarak Merchant</span>
-                <b>{{ number_format($distanceKm, 1) }} km</b>
-            </div>
-
-            <div>
-                <span>Ongkir</span>
-                <b>Rp {{ number_format($deliveryFee) }}</b>
-            </div>
-
-            <div class="merchant-grand">
-                <span>Total Merchant</span>
-                <b>Rp {{ number_format($merchantGrandTotal) }}</b>
-            </div>
-
         </div>
 
     </div>
@@ -161,8 +102,9 @@
 
 <div class="checkout-card">
     <div class="checkout-total">
-        <span>Grand Total Semua Merchant</span>
+        <span>Total Produk</span>
         <h2>Rp {{ number_format($grandTotal) }}</h2>
+        <p>Ongkir dihitung setelah pilih alamat pengiriman.</p>
     </div>
 
     <div class="checkout-actions">
@@ -319,9 +261,6 @@
     border:1px solid #fed7aa;
     border-radius:22px;
     padding:14px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
 }
 
 .merchant-summary-box div{
@@ -338,22 +277,6 @@
 .merchant-summary-box b{
     color:#9a3412;
     font-weight:900;
-}
-
-.merchant-grand{
-    border-top:2px dashed #fed7aa;
-    padding-top:12px;
-    margin-top:4px;
-}
-
-.merchant-grand span{
-    color:#9a3412;
-    font-weight:900;
-}
-
-.merchant-grand b{
-    color:#ea580c;
-    font-size:20px;
 }
 
 .checkout-card{
@@ -373,10 +296,16 @@
 }
 
 .checkout-total h2{
-    margin:6px 0 14px;
+    margin:6px 0 6px;
     font-size:32px;
     color:#9a3412;
     font-weight:900;
+}
+
+.checkout-total p{
+    margin:0 0 14px;
+    color:#6b7280;
+    font-size:13px;
 }
 
 .checkout-actions{

@@ -5,20 +5,19 @@
     <title>JavaJek Food</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        *{
-            box-sizing:border-box;
-        }
+        *{box-sizing:border-box}
 
         body{
             margin:0;
-            background:linear-gradient(135deg,#fff7ed,#ffedd5,#fff7ed);
             min-height:100vh;
             font-family:'Segoe UI',sans-serif;
+            background:linear-gradient(135deg,#fff7ed,#ffedd5,#fff7ed);
             color:#1f2937;
         }
 
@@ -27,31 +26,20 @@
             overflow:hidden;
             background:linear-gradient(135deg,#f97316,#fb923c,#fdba74);
             color:white;
-            border-radius:0 0 36px 36px;
-            padding:28px 18px 24px;
+            border-radius:0 0 34px 34px;
+            padding:22px 16px 24px;
             box-shadow:0 18px 40px rgba(249,115,22,.35);
         }
 
         .hero::before{
             content:"";
             position:absolute;
-            width:180px;
-            height:180px;
+            width:190px;
+            height:190px;
             border-radius:50%;
-            background:rgba(255,255,255,.18);
-            top:-70px;
-            right:-50px;
-        }
-
-        .hero::after{
-            content:"";
-            position:absolute;
-            width:110px;
-            height:110px;
-            border-radius:50%;
-            background:rgba(255,255,255,.14);
-            bottom:-35px;
-            left:25px;
+            background:rgba(255,255,255,.16);
+            top:-80px;
+            right:-60px;
         }
 
         .hero-inner{
@@ -63,10 +51,9 @@
 
         .topbar{
             display:flex;
-            align-items:center;
             justify-content:space-between;
-            gap:12px;
-            flex-wrap:wrap;
+            align-items:center;
+            gap:14px;
         }
 
         .brand{
@@ -75,83 +62,268 @@
             gap:12px;
         }
 
-       .brand-icon{
-    width:74px;
-    height:74px;
-    border-radius:18px;
-    background:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    box-shadow:0 10px 25px rgba(0,0,0,.15);
-    overflow:hidden;
-}
+        .brand-icon{
+            width:58px;
+            height:58px;
+            border-radius:20px;
+            background:white;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+            box-shadow:0 10px 25px rgba(0,0,0,.15);
+        }
+
+        .brand-icon img{
+            width:58px;
+            height:58px;
+            object-fit:cover;
+        }
 
         .brand h1{
             margin:0;
-            font-size:28px;
+            font-size:25px;
             font-weight:900;
-            letter-spacing:-.5px;
         }
 
         .brand p{
-            margin:2px 0 0;
-            font-size:14px;
+            margin:3px 0 0;
+            font-size:13px;
             opacity:.95;
         }
 
-        .nav-menu{
-            margin-top:22px;
+        .hamburger{
+            width:48px;
+            height:48px;
+            border:none;
+            border-radius:18px;
+            background:rgba(255,255,255,.2);
+            color:white;
+            font-size:25px;
+            cursor:pointer;
+            backdrop-filter:blur(10px);
+        }
+
+        .user-menu-wrap{
+            position:relative;
+        }
+
+        .user-dropdown{
+    position:fixed;
+    top:92px;
+    right:22px;
+    width:270px;
+    max-height:calc(100vh - 120px);
+    overflow-y:auto;
+
+    background:rgba(255,255,255,.98);
+    backdrop-filter:blur(18px);
+    border-radius:26px;
+    padding:14px;
+    box-shadow:0 20px 45px rgba(15,23,42,.22);
+    display:none;
+    z-index:99999;
+}
+
+.user-dropdown.show{
+    display:block;
+    animation:menuPop .22s ease;
+}
+
+@media(max-width:640px){
+    .user-dropdown{
+        top:78px;
+        right:12px;
+        left:12px;
+        width:auto;
+        max-height:calc(100vh - 100px);
+    }
+}
+
+        @keyframes menuPop{
+            from{opacity:0;transform:translateY(-8px) scale(.96)}
+            to{opacity:1;transform:translateY(0) scale(1)}
+        }
+
+        .user-info{
+            padding:12px;
+            border-bottom:1px solid #fed7aa;
+            margin-bottom:10px;
+        }
+
+        .user-info b{
+            display:block;
+            color:#9a3412;
+            font-size:16px;
+        }
+
+        .user-info small{
+            color:#6b7280;
+            font-size:12px;
+        }
+
+        .menu-item{
+            width:100%;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:13px 14px;
+            border-radius:16px;
+            text-decoration:none;
+            color:#9a3412;
+            font-weight:900;
+            background:white;
+            margin-bottom:7px;
+            border:none;
+            cursor:pointer;
+            text-align:left;
+        }
+
+        .menu-item:hover{
+            background:#fff7ed;
+        }
+
+        .logout-btn{
+            background:#fee2e2;
+            color:#b91c1c;
+        }
+
+        .search-box{
+            margin-top:18px;
+            background:white;
+            border-radius:22px;
+            padding:12px 15px;
             display:flex;
             gap:10px;
-            overflow-x:auto;
-            padding-bottom:4px;
-            scrollbar-width:none;
+            align-items:center;
+            box-shadow:0 12px 25px rgba(0,0,0,.12);
         }
 
-        .nav-menu::-webkit-scrollbar{
-            display:none;
+        .search-box input{
+            border:none;
+            outline:none;
+            width:100%;
+            font-size:15px;
+            background:none;
         }
 
-        .nav-link,
-        .logout-btn{
-            white-space:nowrap;
-            color:white;
-            font-weight:800;
-            text-decoration:none;
-            background:rgba(255,255,255,.18);
-            border:1px solid rgba(255,255,255,.25);
-            padding:10px 14px;
-            border-radius:999px;
-            backdrop-filter:blur(10px);
-            transition:.2s;
+        .wallet-card{
+            margin-top:18px;
+            background:linear-gradient(135deg,#ea580c,#fb923c,#fdba74);
+            border-radius:30px;
+            padding:20px;
+            box-shadow:0 18px 35px rgba(249,115,22,.35);
+            position:relative;
+            overflow:hidden;
+        }
+
+        .wallet-card::after{
+            content:"";
+            position:absolute;
+            width:150px;
+            height:150px;
+            border-radius:50%;
+            background:rgba(255,255,255,.13);
+            right:-45px;
+            top:-45px;
+        }
+
+        .wallet-content{
+            position:relative;
+            z-index:2;
+        }
+
+        .wallet-top{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
+        .wallet-label{
             font-size:14px;
+            opacity:.92;
         }
 
-        .nav-link:hover,
-        .logout-btn:hover{
-            background:white;
-            color:#f97316;
-            transform:translateY(-2px);
+        .wallet-balance{
+            font-size:30px;
+            font-weight:900;
+            margin-top:6px;
         }
 
-        .logout-form{
-            display:inline;
-            margin:0;
-        }
-
-        .logout-btn{
+        .eye-btn{
+            border:none;
+            width:44px;
+            height:44px;
+            border-radius:50%;
+            background:rgba(255,255,255,.22);
+            color:white;
+            font-size:20px;
             cursor:pointer;
         }
 
+        .wallet-actions{
+            margin-top:18px;
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:10px;
+        }
+
+        .wallet-actions a{
+            text-align:center;
+            padding:12px;
+            border-radius:17px;
+            text-decoration:none;
+            font-weight:900;
+        }
+
+        .topup-btn{
+            background:white;
+            color:#ea580c;
+        }
+
+        .withdraw-btn{
+            background:rgba(255,255,255,.2);
+            color:white;
+            border:1px solid rgba(255,255,255,.28);
+        }
+
+        .quick-menu{
+            margin-top:20px;
+            display:grid;
+            grid-template-columns:repeat(4,1fr);
+            gap:12px;
+        }
+
+        .quick-menu a{
+            background:rgba(255,255,255,.94);
+            border:1px solid rgba(255,255,255,.7);
+            border-radius:24px;
+            padding:15px 8px;
+            text-align:center;
+            text-decoration:none;
+            box-shadow:0 10px 24px rgba(15,23,42,.08);
+        }
+
+        .quick-icon{
+            font-size:32px;
+            line-height:1;
+        }
+
+        .quick-title{
+            margin-top:8px;
+            color:#9a3412;
+            font-size:13px;
+            font-weight:900;
+        }
+
         main{
-            padding:22px 16px 90px;
             max-width:1100px;
             margin:auto;
+            padding:22px 14px 100px;
         }
 
         .food-card{
-            background:rgba(255,255,255,.92);
+            background:rgba(255,255,255,.94);
             border:1px solid rgba(255,255,255,.75);
             border-radius:24px;
             padding:18px;
@@ -159,608 +331,212 @@
             margin-bottom:18px;
         }
 
-        .btn-order{
-            background:linear-gradient(135deg,#f97316,#fb923c);
-            color:white;
-            padding:11px 16px;
-            border-radius:16px;
+        .alert-success{
+            border-left:6px solid #16a34a;
+            color:#166534;
             font-weight:800;
-            display:inline-block;
-            text-decoration:none;
-            border:none;
-            box-shadow:0 10px 22px rgba(249,115,22,.28);
         }
 
-        .btn-order:hover{
-            transform:translateY(-2px);
-            box-shadow:0 14px 28px rgba(249,115,22,.35);
-        }
-
-        .form-control{
-            width:100%;
-            border:1px solid #fed7aa;
-            border-radius:16px;
-            padding:12px 14px;
-            outline:none;
-            background:#fff;
-            margin-top:6px;
-        }
-
-        .form-control:focus{
-            border-color:#f97316;
-            box-shadow:0 0 0 4px rgba(249,115,22,.12);
+        .alert-error{
+            border-left:6px solid #dc2626;
+            color:#991b1b;
+            font-weight:800;
         }
 
         .bottom-nav{
-    position:fixed;
-    left:14px;
-    right:14px;
-    bottom:14px;
-    z-index:999;
-    background:rgba(255,255,255,.96);
-    border:1px solid rgba(255,255,255,.8);
-    border-radius:28px;
-    box-shadow:0 18px 45px rgba(15,23,42,.22);
-    display:none;
-    grid-template-columns:repeat(5,1fr);
-    overflow:hidden;
-    backdrop-filter:blur(14px);
-}
+            position:fixed;
+            left:14px;
+            right:14px;
+            bottom:14px;
+            z-index:999;
+            background:rgba(255,255,255,.97);
+            border:1px solid rgba(255,255,255,.85);
+            border-radius:28px;
+            box-shadow:0 18px 45px rgba(15,23,42,.22);
+            display:none;
+            grid-template-columns:repeat(5,1fr);
+            overflow:hidden;
+            backdrop-filter:blur(14px);
+        }
 
-.bottom-nav a{
-    position:relative;
-    text-align:center;
-    padding:10px 4px 9px;
-    font-size:11px;
-    font-weight:900;
-    color:#9a3412;
-    text-decoration:none;
-}
+        .bottom-nav a{
+            position:relative;
+            text-align:center;
+            padding:10px 4px 9px;
+            font-size:11px;
+            font-weight:900;
+            color:#9a3412;
+            text-decoration:none;
+        }
 
-.bottom-nav a.active{
-    color:#f97316;
-}
+        .bottom-nav a.active{
+            color:#f97316;
+        }
 
-.bottom-nav span{
-    display:block;
-    font-size:22px;
-    line-height:22px;
-    margin-bottom:3px;
-}
+        .bottom-nav span{
+            display:block;
+            font-size:22px;
+            line-height:22px;
+            margin-bottom:3px;
+        }
 
-.bottom-nav .nav-dot{
-    position:absolute;
-    top:8px;
-    right:23%;
-    background:#dc2626;
-    color:white;
-    font-size:10px;
-    font-weight:900;
-    min-width:17px;
-    height:17px;
-    border-radius:999px;
-    display:none;
-    align-items:center;
-    justify-content:center;
-}
+        .nav-dot{
+            position:absolute;
+            top:7px;
+            right:25%;
+            background:#dc2626;
+            color:white;
+            font-size:10px;
+            min-width:17px;
+            height:17px;
+            border-radius:999px;
+            display:none;
+            align-items:center;
+            justify-content:center;
+            font-style:normal;
+        }
 
         @media(max-width:640px){
             .hero{
-                padding:22px 15px 20px;
                 border-radius:0 0 28px 28px;
             }
 
             .brand h1{
-                font-size:24px;
-            }
-
-            .brand p{
-                font-size:13px;
+                font-size:22px;
             }
 
             .brand-icon{
-                width:44px;
-                height:44px;
+                width:48px;
+                height:48px;
                 border-radius:16px;
             }
 
-            .nav-menu{
-                gap:8px;
+            .brand-icon img{
+                width:48px;
+                height:48px;
             }
 
-            .nav-link,
-            .logout-btn{
-                font-size:13px;
-                padding:9px 12px;
+            .quick-menu{
+                gap:10px;
+            }
+
+            .quick-menu a{
+                border-radius:20px;
+                padding:13px 6px;
             }
 
             main{
-                padding:18px 12px 95px;
-            }
-
-            .food-card{
-                border-radius:20px;
-                padding:15px;
+                padding:18px 12px 96px;
             }
 
             .bottom-nav{
                 display:grid;
             }
         }
-
-.notif-badge{
-    background:#dc2626;
-    color:white;
-    font-size:11px;
-    font-weight:900;
-    padding:2px 7px;
-    border-radius:999px;
-    margin-left:5px;
-}
-.menu-item{
-    width:100%;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:13px 14px;
-    border-radius:16px;
-    text-decoration:none;
-    color:#9a3412;
-    font-weight:800;
-    transition:.2s;
-    margin-bottom:6px;
-}
-
-.menu-item:hover{
-    background:#fff7ed;
-}
-
-.logout-btn{
-    border:none;
-    background:#fee2e2;
-    color:#b91c1c;
-    cursor:pointer;
-    font-size:14px;
-}
     </style>
 </head>
 
 <body>
 
 <div class="hero">
-
     <div class="hero-inner">
 
-        {{-- =========================
-           TOP HEADER
-        ========================= --}}
-
         <div class="topbar">
-
             <div class="brand">
-
                 <div class="brand-icon">
-    <img src="{{ asset('images/logo-javajek.png') }}"
-     alt="JavaJek"
-     style="
-        width:75px;
-        height:75px;
-        object-fit:cover;
-        border-radius:14px;
-     ">
-</div>
+                    <img src="{{ asset('images/logo-javajek.png') }}" alt="JavaJek">
+                </div>
 
                 <div>
-                    <h1 id="greetingText">
-                        JavaJek Food
-                    </h1>
-
-                    <p>
-                        Halo,
-                        {{ auth()->user()->name }}
-                    </p>
+                    <h1 id="greetingText">JavaJek Food</h1>
+                    <p>Halo, {{ auth()->user()->name }}</p>
                 </div>
-
             </div>
 
-            <div style="position:relative;">
+            <div class="user-menu-wrap">
+                <button type="button" class="hamburger" id="menuButton" onclick="toggleUserMenu()">☰</button>
 
-    <button onclick="toggleUserMenu()"
-            id="menuButton"
-            style="
-                width:48px;
-                height:48px;
-                border:none;
-                border-radius:16px;
-                background:rgba(255,255,255,.18);
-                color:white;
-                font-size:24px;
-                cursor:pointer;
-                backdrop-filter:blur(10px);
-            ">
-        ☰
-    </button>
-
-    <div id="userDropdown"
-         style="
-            position:absolute;
-            top:60px;
-            right:0;
-            width:220px;
-            background:white;
-            border-radius:24px;
-            padding:12px;
-            box-shadow:0 20px 45px rgba(0,0,0,.18);
-            display:none;
-            z-index:9999;
-         ">
-
-        <div style="
-            padding:12px;
-            border-bottom:1px solid #fed7aa;
-            margin-bottom:10px;
-        ">
-
-            <div style="
-                font-size:17px;
-                font-weight:900;
-                color:#9a3412;
-            ">
-                {{ auth()->user()->name }}
-            </div>
-
-            <div style="
-                font-size:13px;
-                color:#6b7280;
-                margin-top:3px;
-            ">
-                {{ auth()->user()->email }}
-            </div>
-
-        </div>
-
-        <a href="/profile"
-           class="menu-item">
-            👤 Profile
-        </a>
-
-        <a href="/driver"
-           class="menu-item">
-            🛵 Driver
-        </a>
-
-        <a href="/merchant"
-           class="menu-item">
-            🏪 Merchant
-        </a>
-
-        <a href="/my-orders"
-           class="menu-item">
-            📦 Pesanan Saya
-        </a>
-
-        <a href="/cart"
-           class="menu-item">
-            🛒 Keranjang
-        </a>
-
-        <form method="POST"
-              action="{{ route('logout') }}">
-            @csrf
-
-            <button type="submit"
-                    class="menu-item logout-btn">
-                🚪 Logout
-            </button>
-        </form>
-
-    </div>
-
-</div>
-
-        </div>
-
-        {{-- =========================
-           SEARCH
-        ========================= --}}
-
-        <div style="margin-top:18px;">
-
-            <form action="/" method="GET">
-
-                <div style="
-                    background:white;
-                    border-radius:20px;
-                    padding:10px 14px;
-                    display:flex;
-                    align-items:center;
-                    gap:10px;
-                    box-shadow:0 12px 25px rgba(0,0,0,.12);
-                ">
-
-                    <span style="font-size:20px;">
-                        🔍
-                    </span>
-
-                    <input type="text"
-                           name="search"
-                           placeholder="Cari makanan favoritmu..."
-                           style="
-                                border:none;
-                                outline:none;
-                                width:100%;
-                                font-size:15px;
-                                background:none;
-                           ">
-
-                </div>
-
-            </form>
-
-        </div>
-
-        {{-- =========================
-           WALLET CARD
-        ========================= --}}
-
-        <div style="
-            margin-top:18px;
-            background:linear-gradient(135deg,#ea580c,#fb923c,#fdba74);
-            border-radius:28px;
-            padding:20px;
-            box-shadow:0 18px 35px rgba(249,115,22,.35);
-            position:relative;
-            overflow:hidden;
-        ">
-
-            <div style="
-                position:absolute;
-                width:140px;
-                height:140px;
-                background:rgba(255,255,255,.12);
-                border-radius:50%;
-                right:-40px;
-                top:-40px;
-            "></div>
-
-            <div style="
-                position:relative;
-                z-index:2;
-            ">
-
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                ">
-
-                    <div>
-
-                        <div style="
-                            font-size:14px;
-                            opacity:.9;
-                        ">
-                            💳 Saldo JavaPay
-                        </div>
-
-                        <div id="saldoText"
-                             style="
-                                font-size:30px;
-                                font-weight:900;
-                                margin-top:6px;
-                            ">
-                            ********
-                        </div>
-
+                <div id="userDropdown" class="user-dropdown">
+                    <div class="user-info">
+                        <b>{{ auth()->user()->name }}</b>
+                        <small>{{ auth()->user()->email }}</small>
                     </div>
 
-                    <button onclick="toggleSaldo()"
-                            style="
-                                border:none;
-                                width:44px;
-                                height:44px;
-                                border-radius:50%;
-                                background:rgba(255,255,255,.2);
-                                color:white;
-                                font-size:20px;
-                                cursor:pointer;
-                            ">
-                        👁️
-                    </button>
+                    <a href="/profile" class="menu-item">👤 Profile</a>
+                    <a href="/driver" class="menu-item">🛵 Driver</a>
+                    <a href="/merchant" class="menu-item">🏪 Merchant</a>
+                    <a href="/my-orders" class="menu-item">📦 Pesanan Saya</a>
+                    <a href="/cart" class="menu-item">🛒 Keranjang</a>
 
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="menu-item logout-btn">🚪 Logout</button>
+                    </form>
                 </div>
-
-                <div style="
-                    margin-top:18px;
-                    display:grid;
-                    grid-template-columns:repeat(2,1fr);
-                    gap:10px;
-                ">
-
-                    <a href="/topup"
-                       class="btn-order"
-                       style="
-                            text-align:center;
-                            background:white;
-                            color:#ea580c;
-                            box-shadow:none;
-                       ">
-                        ➕ Topup
-                    </a>
-
-                    <a href="/withdraw"
-                       class="btn-order"
-                       style="
-                            text-align:center;
-                            background:rgba(255,255,255,.18);
-                            border:1px solid rgba(255,255,255,.25);
-                            box-shadow:none;
-                       ">
-                        💸 Tarik
-                    </a>
-
-                </div>
-
             </div>
-
         </div>
 
-        {{-- =========================
-           MENU ICON
-        ========================= --}}
+        <form action="/" method="GET" class="search-box">
+            <span>🔍</span>
+            <input type="text" name="search" placeholder="Cari makanan favoritmu...">
+        </form>
 
-        <div style="
-            margin-top:20px;
-            display:grid;
-            grid-template-columns:repeat(4,1fr);
-            gap:12px;
-        ">
+        <div class="wallet-card">
+            <div class="wallet-content">
+                <div class="wallet-top">
+                    <div>
+                        <div class="wallet-label">💳 Saldo JavaPay</div>
+                        <div id="saldoText" class="wallet-balance">********</div>
+                    </div>
 
-            <a href="/"
-               class="food-card"
-               style="text-align:center;padding:14px;text-decoration:none;">
-
-                <div style="font-size:34px;">🍔</div>
-
-                <div style="
-                    margin-top:8px;
-                    font-size:13px;
-                    font-weight:800;
-                    color:#9a3412;
-                ">
-                    J-Food
+                    <button type="button" onclick="toggleSaldo()" class="eye-btn">👁️</button>
                 </div>
 
-            </a>
-
-            <a href="/driver"
-               class="food-card"
-               style="text-align:center;padding:14px;text-decoration:none;">
-
-                <div style="font-size:34px;">🛵</div>
-
-                <div style="
-                    margin-top:8px;
-                    font-size:13px;
-                    font-weight:800;
-                    color:#9a3412;
-                ">
-                    Driver
+                <div class="wallet-actions">
+                    <a href="/topup" class="topup-btn">➕ Topup</a>
+                    <a href="/withdraw" class="withdraw-btn">💸 Tarik</a>
                 </div>
+            </div>
+        </div>
 
+        <div class="quick-menu">
+            <a href="/">
+                <div class="quick-icon">🍔</div>
+                <div class="quick-title">J-Food</div>
             </a>
 
-            <a href="/merchant"
-               class="food-card"
-               style="text-align:center;padding:14px;text-decoration:none;">
-
-                <div style="font-size:34px;">🏪</div>
-
-                <div style="
-                    margin-top:8px;
-                    font-size:13px;
-                    font-weight:800;
-                    color:#9a3412;
-                ">
-                    Merchant
-                </div>
-
+            <a href="{{ route('ojek.page') }}">
+                <div class="quick-icon">🏍️</div>
+                <div class="quick-title">J-Ride</div>
             </a>
 
-            <a href="/my-orders"
-               class="food-card"
-               style="text-align:center;padding:14px;text-decoration:none;">
-
-                <div style="font-size:34px;">📦</div>
-
-                <div style="
-                    margin-top:8px;
-                    font-size:13px;
-                    font-weight:800;
-                    color:#9a3412;
-                ">
-                    Pesanan
-                </div>
-
+            <a href="/merchant">
+                <div class="quick-icon">🏪</div>
+                <div class="quick-title">Merchant</div>
             </a>
 
+            <a href="/my-orders">
+                <div class="quick-icon">📦</div>
+                <div class="quick-title">Pesanan</div>
+            </a>
         </div>
 
     </div>
-
 </div>
-
-<script>
-
-let saldoVisible = false;
-
-function toggleSaldo()
-{
-    const saldo =
-        document.getElementById('saldoText');
-
-    saldoVisible = !saldoVisible;
-
-    saldo.innerText = saldoVisible
-        ? 'Rp 0'
-        : '********';
-}
-
-function updateGreeting()
-{
-    const hour = new Date().getHours();
-
-    const greeting =
-        document.getElementById('greetingText');
-
-    if (!greeting) return;
-
-    if (hour >= 5 && hour < 10) {
-
-        greeting.innerText =
-            '☀️ Selamat Pagi';
-
-    } else if (hour >= 10 && hour < 15) {
-
-        greeting.innerText =
-            '🌤️ Selamat Siang';
-
-    } else if (hour >= 15 && hour < 18) {
-
-        greeting.innerText =
-            '🌇 Selamat Sore';
-
-    } else {
-
-        greeting.innerText =
-            '🌙 Selamat Malam';
-    }
-}
-
-updateGreeting();
-
-</script>
-
-
 
 <main>
     @if(session('success'))
-        <div class="food-card" style="border-left:6px solid #16a34a;color:#166534;font-weight:700;">
-            {{ session('success') }}
-        </div>
+        <div class="food-card alert-success">{{ session('success') }}</div>
     @endif
 
     @if(session('error'))
-        <div class="food-card" style="border-left:6px solid #dc2626;color:#991b1b;font-weight:700;">
-            {{ session('error') }}
-        </div>
+        <div class="food-card alert-error">{{ session('error') }}</div>
     @endif
 
     @yield('content')
 </main>
 
 <div class="bottom-nav">
-
     <a href="/" class="{{ request()->is('/') ? 'active' : '' }}">
         <span>🏠</span>
         Home
@@ -776,37 +552,61 @@ updateGreeting();
         Order
     </a>
 
-    <a href="/driver"
-   class="food-card"
-   style="position:relative;text-align:center;padding:14px;text-decoration:none;">
-
-    <i id="driverNotif" class="nav-dot">0</i>
-
-    <div style="font-size:34px;">🛵</div>
-
-    <div style="margin-top:8px;font-size:13px;font-weight:800;color:#9a3412;">
+    <a href="/driver" class="{{ request()->is('driver*') ? 'active' : '' }}">
+        <i id="driverNotif" class="nav-dot">0</i>
+        <span>🛵</span>
         Driver
-    </div>
-</a>
+    </a>
 
-    <a href="/merchant"
-   class="food-card"
-   style="position:relative;text-align:center;padding:14px;text-decoration:none;">
-
-    <i id="merchantNotif" class="nav-dot">0</i>
-
-    <div style="font-size:34px;">🏪</div>
-
-    <div style="margin-top:8px;font-size:13px;font-weight:800;color:#9a3412;">
+    <a href="/merchant" class="{{ request()->is('merchant*') ? 'active' : '' }}">
+        <i id="merchantNotif" class="nav-dot">0</i>
+        <span>🏪</span>
         Merchant
-    </div>
-</a>
-
+    </a>
 </div>
 
 <script>
-function setBadge(id, count)
-{
+let saldoVisible = false;
+
+function toggleSaldo(){
+    const saldo = document.getElementById('saldoText');
+    saldoVisible = !saldoVisible;
+    saldo.innerText = saldoVisible ? 'Rp 0' : '********';
+}
+
+function updateGreeting(){
+    const hour = new Date().getHours();
+    const greeting = document.getElementById('greetingText');
+
+    if (!greeting) return;
+
+    if (hour >= 5 && hour < 10) {
+        greeting.innerText = '☀️ Selamat Pagi';
+    } else if (hour >= 10 && hour < 15) {
+        greeting.innerText = '🌤️ Selamat Siang';
+    } else if (hour >= 15 && hour < 18) {
+        greeting.innerText = '🌇 Selamat Sore';
+    } else {
+        greeting.innerText = '🌙 Selamat Malam';
+    }
+}
+
+function toggleUserMenu(){
+    document.getElementById('userDropdown')?.classList.toggle('show');
+}
+
+window.addEventListener('click', function(e){
+    const dropdown = document.getElementById('userDropdown');
+    const button = document.getElementById('menuButton');
+
+    if (!dropdown || !button) return;
+
+    if (!dropdown.contains(e.target) && !button.contains(e.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
+function setBadge(id, count){
     const badge = document.getElementById(id);
 
     if (!badge) return;
@@ -819,55 +619,20 @@ function setBadge(id, count)
     }
 }
 
-function loadNotifications()
-{
+function loadNotifications(){
     fetch('/notifications/count')
         .then(res => res.json())
         .then(data => {
-            const driverCount = parseInt(data.driver ?? 0);
-            const merchantCount = parseInt(data.merchant ?? 0);
-
-            setBadge('driverBottomNotif', driverCount);
-setBadge('merchantBottomNotif', merchantCount);
+            setBadge('driverNotif', parseInt(data.driver ?? 0));
+            setBadge('merchantNotif', parseInt(data.merchant ?? 0));
         })
-        .catch(err => {
-            console.log('Notif layout error:', err);
-        });
+        .catch(err => console.log('Notif layout error:', err));
 }
 
+updateGreeting();
 loadNotifications();
 setInterval(loadNotifications, 5000);
-
-function toggleUserMenu()
-{
-    const menu =
-        document.getElementById('userDropdown');
-
-    if (!menu) return;
-
-    menu.style.display =
-        menu.style.display === 'block'
-        ? 'none'
-        : 'block';
-}
-
-window.addEventListener('click', function(e){
-
-    const dropdown =
-        document.getElementById('userDropdown');
-
-    const button =
-        document.getElementById('menuButton');
-
-    if (!dropdown || !button) return;
-
-    if (!dropdown.contains(e.target)
-        && !button.contains(e.target)) {
-
-        dropdown.style.display = 'none';
-    }
-});
-
 </script>
+
 </body>
 </html>

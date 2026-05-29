@@ -6,6 +6,8 @@ use App\Models\Driver;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\DeliverySetting;
+use App\Models\DriverVehicle;
 
 class DriverController extends Controller
 {
@@ -25,12 +27,31 @@ class DriverController extends Controller
             return view('driver.rejected', compact('driver'));
         }
 
-        $orders = Order::where('driver_id', $driver->id)
-            ->latest()
-            ->get();
+        $orders = Order::where(function($q) use ($driver) {
+        $q->where('driver_id', $driver->id)
+          ->orWhere(function($x) {
+              $x->whereNull('driver_id')
+                ->where('status', 'searching_driver');
+          });
+    })
+    ->whereNotIn('status', ['completed', 'cancelled'])
+    ->latest()
+    ->get();
 
         return view('driver.dashboard', compact('driver', 'orders'));
     }
+
+public function history()
+{
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+
+    $orders = Order::where('driver_id', $driver->id)
+        ->whereIn('status', ['completed', 'cancelled'])
+        ->latest()
+        ->get();
+
+    return view('driver.history', compact('driver', 'orders'));
+}
 
     public function setStatus($status)
     {
@@ -55,6 +76,32 @@ class DriverController extends Controller
 
         return redirect('/driver');
     }
+
+public function activeLocations()
+{
+    $drivers = Driver::with(['user', 'activeVehicles'])
+        ->whereIn('status', ['online', 'busy'])
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->get();
+
+    return response()->json([
+        'drivers' => $drivers->flatMap(function ($driver) {
+            return $driver->activeVehicles->map(function ($vehicle) use ($driver) {
+                return [
+                    'id' => $driver->id . '-' . $vehicle->id,
+                    'driver_id' => $driver->id,
+                    'name' => $driver->user->name ?? 'Driver',
+                    'vehicle_type' => strtolower($vehicle->vehicle_type),
+                    'plate_number' => strtoupper($vehicle->plate_number),
+                    'latitude' => $driver->latitude,
+                    'longitude' => $driver->longitude,
+                ];
+            });
+        })->values(),
+    ]);
+}
+
 
     public function updateLocation(Request $request)
     {
@@ -86,58 +133,74 @@ class DriverController extends Controller
     }
 
     public function updateOrderStatus($id, $status)
-    {
-        $driver = Driver::where('user_id', Auth::id())->first();
-
-        if (!$driver) {
-            return redirect('/driver');
-        }
-
-        if (!in_array($status, ['driver_to_merchant', 'dalam_pengiriman', 'completed'])) {
-            return redirect('/driver');
-        }
-
-        $order = Order::where('id', $id)
-            ->where('driver_id', $driver->id)
-            ->firstOrFail();
-
-        $order->update([
-            'status' => $status,
-        ]);
-
-        if ($status == 'completed') {
-            $driver->update([
-                'status' => 'online',
-            ]);
-        }
-
-        return redirect('/driver')->with('success', 'Status pesanan diperbarui.');
-    }
-
-    public function acceptOrder($id)
 {
     $driver = Driver::where('user_id', Auth::id())->firstOrFail();
 
-    $order = Order::with('restaurant')
-        ->where('id', $id)
+    $allowedStatuses = [
+        'driver_to_merchant',
+        'dalam_pengiriman',
+        'driver_to_pickup',
+        'driver_to_destination',
+        'completed'
+    ];
+
+    if (!in_array($status, $allowedStatuses)) {
+        return redirect('/driver')
+            ->with('error', 'Status tidak valid.');
+    }
+
+    $order = Order::where('id', $id)
         ->where('driver_id', $driver->id)
+        ->firstOrFail();
+
+    $order->update([
+        'status' => $status
+    ]);
+
+    if ($status == 'completed') {
+
+        $driver->update([
+            'status' => 'online'
+        ]);
+
+    }
+
+    return redirect('/driver')
+        ->with('success', 'Status order diperbarui.');
+}
+   public function acceptOrder($id)
+{
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+
+    $order = Order::where('id', $id)
+        ->where(function($q) use ($driver) {
+            $q->where('driver_id', $driver->id)
+              ->orWhereNull('driver_id');
+        })
         ->firstOrFail();
 
     if ($order->status == 'cancelled') {
         return redirect('/driver')->with('error', 'Pesanan sudah dibatalkan.');
     }
 
+    if ($order->order_type == 'ojek') {
+        $nextStatus = 'driver_to_pickup';
+    } else {
+        $nextStatus = 'driver_to_merchant';
+    }
+
     $order->update([
+        'driver_id' => $driver->id,
         'driver_status' => 'accepted',
-        'merchant_status' => 'accepted',
-        'status' => 'driver_to_merchant',
+        'merchant_status' => $order->order_type == 'ojek' ? 'accepted' : 'accepted',
+        'status' => $nextStatus,
     ]);
 
     $driver->update([
         'status' => 'busy',
     ]);
 
-    return redirect('/driver')->with('success', 'Pesanan diterima. Silakan menuju merchant.');
+    return redirect('/driver')->with('success', 'Pesanan diterima.');
 }
 
     public function rejectOrder($id)
@@ -207,6 +270,67 @@ class DriverController extends Controller
             ->first();
     }
 
+
+  public function settings()
+{
+    $driver = Driver::where('user_id', auth()->id())
+        ->with('vehicles')
+        ->firstOrFail();
+
+    return view('driver.settings', compact('driver'));
+}
+
+public function updateSettings(Request $request)
+{
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+    $user = Auth::user();
+
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'phone' => 'nullable|string|max:30',
+        'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        'vehicle_type' => 'nullable|string|max:50',
+        'plate_number' => 'nullable|string|max:50',
+        'vehicle_brand' => 'nullable|string|max:100',
+        'vehicle_color' => 'nullable|string|max:100',
+        'latitude' => 'nullable',
+        'longitude' => 'nullable',
+    ]);
+
+    $user->name = $request->name;
+    $user->email = $request->email;
+    $user->phone = $request->phone;
+
+    if ($request->hasFile('photo')) {
+        $user->photo = $request->file('photo')->store('profiles', 'public');
+    }
+
+    $user->save();
+
+    $driver->vehicle_type = $request->vehicle_type;
+    $driver->plate_number = $request->plate_number;
+
+    if (\Illuminate\Support\Facades\Schema::hasColumn('drivers', 'vehicle_brand')) {
+        $driver->vehicle_brand = $request->vehicle_brand;
+    }
+
+    if (\Illuminate\Support\Facades\Schema::hasColumn('drivers', 'vehicle_color')) {
+        $driver->vehicle_color = $request->vehicle_color;
+    }
+
+    if ($request->latitude && $request->longitude) {
+        $driver->latitude = $request->latitude;
+        $driver->longitude = $request->longitude;
+        $driver->last_location_update = now();
+    }
+
+    $driver->save();
+
+    return redirect('/driver/settings')
+        ->with('success', 'Setting driver berhasil diperbarui.');
+}
+
     public function notifCount()
     {
         $driver = Driver::where('user_id', Auth::id())->first();
@@ -217,13 +341,87 @@ class DriverController extends Controller
             ]);
         }
 
-        $count = Order::where('driver_id', $driver->id)
-            ->where('driver_status', 'pending')
-            ->where('status', 'waiting_response')
-            ->count();
+        $count = Order::where(function($q) use ($driver){
+
+        $q->where('driver_id', $driver->id)
+          ->where('driver_status', 'pending')
+
+          ->orWhere(function($x){
+
+                $x->whereNull('driver_id')
+                  ->where('status', 'searching_driver');
+
+          });
+
+    })
+    ->count();
 
         return response()->json([
             'count' => $count,
         ]);
     }
+    public function addVehicle(Request $request)
+{
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+
+    $request->validate([
+        'vehicle_type' => 'required|in:motor,mobil',
+        'plate_prefix' => 'required|string|max:2',
+        'plate_number_middle' => 'required|string|max:4',
+        'plate_suffix' => 'required|string|max:3',
+        'vehicle_brand' => 'nullable|string|max:100',
+        'vehicle_color' => 'nullable|string|max:100',
+    ]);
+
+    $plateNumber = strtoupper(
+        $request->plate_prefix . ' ' .
+        $request->plate_number_middle . ' ' .
+        $request->plate_suffix
+    );
+
+    DriverVehicle::create([
+        'driver_id' => $driver->id,
+        'vehicle_type' => $request->vehicle_type,
+        'plate_number' => $plateNumber,
+        'vehicle_brand' => $request->vehicle_brand,
+        'vehicle_color' => $request->vehicle_color,
+        'is_active' => false,
+    ]);
+
+    return redirect('/driver/settings')
+        ->with('success', 'Kendaraan berhasil ditambahkan.');
+}
+
+public function setActiveVehicle($id)
+{
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+
+    $vehicle = DriverVehicle::where('driver_id', $driver->id)
+        ->where('id', $id)
+        ->firstOrFail();
+
+    DriverVehicle::where('driver_id', $driver->id)
+        ->where('vehicle_type', $vehicle->vehicle_type)
+        ->update(['is_active' => false]);
+
+    $vehicle->update(['is_active' => true]);
+
+    return redirect('/driver/settings')
+        ->with('success', strtoupper($vehicle->vehicle_type) . ' aktif berhasil diganti.');
+}
+
+public function deleteVehicle($id)
+{
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+
+    $vehicle = DriverVehicle::where('driver_id', $driver->id)
+        ->where('id', $id)
+        ->firstOrFail();
+
+    $vehicle->delete();
+
+    return redirect('/driver/settings')
+        ->with('success', 'Kendaraan berhasil dihapus.');
+}
+
 }

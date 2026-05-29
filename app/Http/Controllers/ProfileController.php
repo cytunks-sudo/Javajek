@@ -48,8 +48,23 @@ class ProfileController extends Controller
 
     $user->save();
 
-    return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    $user = $request->user();
+
+if ($user->role == 'driver') {
+    return redirect('/driver')->with('status', 'profile-updated');
 }
+
+if ($user->role == 'merchant') {
+    return redirect('/merchant')->with('status', 'profile-updated');
+}
+
+if ($user->role == 'admin') {
+    return redirect('/admin')->with('status', 'profile-updated');
+}
+
+return redirect('/')->with('status', 'profile-updated');
+    
+    }
     /**
      * Delete the user's account.
      */
