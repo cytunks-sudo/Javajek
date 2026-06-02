@@ -27,6 +27,11 @@ class DriverApplicationController extends Controller
         }
 
         if ($application->status == 'rejected') {
+
+            if (request()->get('retry') == 1) {
+                return view('driver.apply');
+            }
+
             return view('driver.rejected');
         }
     }
@@ -35,37 +40,52 @@ class DriverApplicationController extends Controller
 }
 
     public function store(Request $request)
-    {
-        DriverApplication::updateOrCreate(
-            ['user_id' => Auth::id()],
-            [
-                'phone' => $request->phone,
-                'vehicle_type' => $request->vehicle_type,
-                'plate_number' => $request->plate_number,
-                'address' => $request->address,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
-                'status' => 'pending',
-            ]
-        );
+{
+    $request->validate([
+        'phone' => 'required',
+        'vehicle_type' => 'required',
+        'plate_number' => 'required',
+        'address' => 'required',
+        'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+        'sim_photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+    ]);
 
-        UserRole::updateOrCreate(
-            ['user_id' => Auth::id(), 'role' => 'driver'],
-            ['status' => 'pending']
-        );
+    $photo = $request->file('photo')->store('driver-applications', 'public');
+    $simPhoto = $request->file('sim_photo')->store('driver-applications', 'public');
 
-        return redirect('/')->with('success', 'Pengajuan driver berhasil dikirim.');
-    }
+    DriverApplication::updateOrCreate(
+        ['user_id' => Auth::id()],
+        [
+            'phone' => $request->phone,
+            'vehicle_type' => $request->vehicle_type,
+            'plate_number' => $request->plate_number,
+            'address' => $request->address,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'photo' => $photo,
+            'sim_photo' => $simPhoto,
+            'status' => 'pending',
+        ]
+    );
+
+    UserRole::updateOrCreate(
+        ['user_id' => Auth::id(), 'role' => 'driver'],
+        ['status' => 'pending']
+    );
+
+    return redirect('/driver')
+        ->with('success', 'Pengajuan driver berhasil dikirim. Menunggu approval admin.');
+}
 
     public function adminIndex()
-{
+    {
     $applications = DriverApplication::with('user')
         ->where('status', 'pending')
         ->latest()
         ->get();
 
     return view('admin.driver-applications.index', compact('applications'));
-}
+        }
 
     public function approve($id)
     {

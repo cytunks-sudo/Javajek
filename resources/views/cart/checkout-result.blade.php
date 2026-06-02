@@ -76,6 +76,7 @@
 </div>
 
 <style>
+
 .result-wrapper{
     display:flex;
     flex-direction:column;
@@ -87,105 +88,152 @@
 .grand-card{
     background:white;
     border-radius:28px;
-    padding:18px;
-    border:1px solid #fed7aa;
-    box-shadow:0 12px 28px rgba(15,23,42,.08);
+    padding:20px;
+    border:1px solid rgba(15,23,42,.06);
+    box-shadow:0 12px 30px rgba(15,23,42,.08);
 }
 
 .result-title{
-    margin:0 0 14px;
-    color:#9a3412;
-    font-size:26px;
+    margin:0 0 16px;
+    font-size:28px;
     font-weight:900;
+    color:var(--primary);
 }
 
 .address-box{
-    background:#fff7ed;
-    border-radius:18px;
-    padding:14px;
+    background:rgba(15,23,42,.04);
+    border-radius:20px;
+    padding:16px;
 }
 
 .address-box span{
-    color:#6b7280;
-    font-size:13px;
+    display:block;
+    color:var(--primary);
+    font-size:12px;
+    font-weight:900;
+    margin-bottom:6px;
 }
 
 .address-box p{
-    margin:6px 0 0;
+    margin:0;
     color:#111827;
     font-weight:700;
-    line-height:1.5;
+    line-height:1.6;
 }
 
 .merchant-result-card h3{
-    margin:0 0 14px;
-    color:#9a3412;
-    font-size:20px;
+    margin:0 0 16px;
+    color:var(--primary);
+    font-size:21px;
     font-weight:900;
 }
 
 .summary-row,
-.grand-card div{
+.grand-card > div{
     display:flex;
     justify-content:space-between;
+    align-items:center;
     gap:12px;
-    padding:10px 0;
-    border-bottom:1px dashed #fed7aa;
+    padding:12px 0;
+    border-bottom:1px dashed rgba(15,23,42,.08);
 }
 
 .summary-row span,
 .grand-card span{
     color:#6b7280;
-    font-size:13px;
+    font-size:14px;
+    font-weight:700;
 }
 
 .summary-row b,
 .grand-card b{
-    color:#9a3412;
+    color:#111827;
     font-weight:900;
 }
 
 .summary-row.total,
 .grand-total{
-    border-bottom:none;
-    margin-top:6px;
+    border-bottom:none !important;
 }
 
 .summary-row.total span,
 .grand-total span{
-    color:#9a3412;
+    color:var(--primary);
     font-weight:900;
 }
 
 .summary-row.total b,
 .grand-total b{
-    color:#ea580c;
-    font-size:22px;
+    color:var(--primary);
+    font-size:24px;
+    font-weight:900;
 }
 
 .order-btn{
-    margin-top:18px;
     width:100%;
+    margin-top:18px;
     border:none;
-    background:linear-gradient(135deg,#f97316,#fb923c);
+    cursor:pointer;
+
+    padding:17px;
+    border-radius:20px;
+
     color:white;
-    padding:16px;
-    border-radius:18px;
     font-size:15px;
     font-weight:900;
+
+    background:linear-gradient(
+        135deg,
+        var(--primary),
+        var(--secondary)
+    );
+
+    box-shadow:0 12px 24px rgba(15,23,42,.15);
+}
+
+.order-btn:hover{
+    transform:translateY(-1px);
 }
 
 .back-btn{
     display:block;
     margin-top:12px;
-    background:#fff7ed;
-    color:#9a3412;
-    padding:14px;
-    border-radius:18px;
+
     text-align:center;
     text-decoration:none;
+
+    padding:15px;
+    border-radius:18px;
+
+    background:rgba(15,23,42,.05);
+    color:var(--primary);
     font-weight:900;
 }
+
+.back-btn:hover{
+    background:rgba(15,23,42,.08);
+}
+
+@media(max-width:640px){
+
+    .result-card,
+    .merchant-result-card,
+    .grand-card{
+        padding:16px;
+        border-radius:24px;
+    }
+
+    .result-title{
+        font-size:24px;
+    }
+
+    .summary-row.total b,
+    .grand-total b{
+        font-size:22px;
+    }
+
+}
+
 </style>
 
 @endsection

@@ -96,6 +96,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/active-drivers', [HomeController::class, 'activeDrivers']);
 
 
+    Route::get('/car', [OrderController::class, 'carPage'])
+    ->name('car.page');
+
+    Route::post('/car/calculate', [OrderController::class, 'calculateCar'])
+    ->name('car.calculate');
+
+    Route::post('/car/order', [OrderController::class, 'storeCarOrder'])
+    ->name('car.order');
+
     /*
     |--------------------------------------------------------------------------
     | CUSTOMER ORDER
@@ -103,10 +112,12 @@ Route::middleware(['auth'])->group(function () {
     */
 
     Route::get('/my-orders', [CartController::class, 'orders']);
-
+    Route::get('/my-orders/history', [CartController::class, 'orderHistory'])
+    ->name('orders.history');
     Route::get('/my-orders/{id}', [OrderController::class, 'show'])
         ->name('orders.show');
-
+    Route::get('/order/{id}/driver-location', [OrderController::class, 'driverLocation'])
+    ->name('orders.driver.location');
 
     /*
     |--------------------------------------------------------------------------
@@ -199,7 +210,7 @@ Route::middleware(['role.redirect:admin'])->prefix('admin')->group(function () {
     Route::get('/orders', [AdminOrderController::class, 'index']);
     Route::get('/orders/{id}/status/{status}', [AdminOrderController::class, 'updateStatus']);
     Route::post('/orders/{id}/assign-driver', [AdminOrderController::class, 'assignDriver']);
-
+    Route::get('/orders/history', [AdminOrderController::class, 'history']);
 
     /*
     |--------------------------------------------------------------------------

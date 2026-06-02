@@ -168,7 +168,8 @@ public function activeLocations()
     return redirect('/driver')
         ->with('success', 'Status order diperbarui.');
 }
-   public function acceptOrder($id)
+  
+public function acceptOrder($id)
 {
     $driver = Driver::where('user_id', Auth::id())->firstOrFail();
 
@@ -183,7 +184,7 @@ public function activeLocations()
         return redirect('/driver')->with('error', 'Pesanan sudah dibatalkan.');
     }
 
-    if ($order->order_type == 'ojek') {
+    if (in_array($order->order_type, ['ojek', 'car'])) {
         $nextStatus = 'driver_to_pickup';
     } else {
         $nextStatus = 'driver_to_merchant';
@@ -192,7 +193,7 @@ public function activeLocations()
     $order->update([
         'driver_id' => $driver->id,
         'driver_status' => 'accepted',
-        'merchant_status' => $order->order_type == 'ojek' ? 'accepted' : 'accepted',
+        'merchant_status' => 'accepted',
         'status' => $nextStatus,
     ]);
 

@@ -36,4 +36,27 @@ class Order extends Model
     {
         return $this->belongsTo(Restaurant::class);
     }
+
+    public static function generateOrderNumber($type = 'food')
+{
+    $prefix = match ($type) {
+        'food' => 'JF',
+        'ojek' => 'JR',
+        'car'  => 'JC',
+        default => 'JF',
+    };
+
+    do {
+
+        $number =
+            $prefix .
+            now()->format('dmyHi') .
+            rand(10,99);
+
+    } while (
+        self::where('order_number', $number)->exists()
+    );
+
+    return $number;
+}
 }

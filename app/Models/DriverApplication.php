@@ -14,6 +14,8 @@ class DriverApplication extends Model
         'address',
         'latitude',
         'longitude',
+        'photo',
+        'sim_photo',
         'status',
     ];
 

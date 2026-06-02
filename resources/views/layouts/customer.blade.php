@@ -10,112 +10,134 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <style>
-        *{box-sizing:border-box}
+@php
+    $appSetting = \App\Models\AppSetting::first();
 
-        body{
-            margin:0;
-            min-height:100vh;
-            font-family:'Segoe UI',sans-serif;
-            background:linear-gradient(135deg,#fff7ed,#ffedd5,#fff7ed);
-            color:#1f2937;
-        }
+    $primaryColor = $appSetting->primary_color ?? '#f97316';
+    $secondaryColor = $appSetting->secondary_color ?? '#fb923c';
 
-        .hero{
-            position:relative;
-            overflow:hidden;
-            background:linear-gradient(135deg,#f97316,#fb923c,#fdba74);
-            color:white;
-            border-radius:0 0 34px 34px;
-            padding:22px 16px 24px;
-            box-shadow:0 18px 40px rgba(249,115,22,.35);
-        }
+    $customerLogo = !empty($appSetting->customer_logo)
+        ? asset('storage/'.$appSetting->customer_logo)
+        : asset('images/logo-javajek.png');
 
-        .hero::before{
-            content:"";
-            position:absolute;
-            width:190px;
-            height:190px;
-            border-radius:50%;
-            background:rgba(255,255,255,.16);
-            top:-80px;
-            right:-60px;
-        }
+    $appName = $appSetting->app_name ?? 'JavaJek';
+@endphp
 
-        .hero-inner{
-            position:relative;
-            z-index:2;
-            max-width:1100px;
-            margin:auto;
-        }
+<style>
+:root{
+    --primary-color: {{ $primaryColor }};
+    --secondary-color: {{ $secondaryColor }};
+    --text-color: {{ $primaryColor }};
+    --soft-bg: #fff7ed;
+    --soft-bg-2: #ffedd5;
+}
 
-        .topbar{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:14px;
-        }
+*{
+    box-sizing:border-box;
+}
 
-        .brand{
-            display:flex;
-            align-items:center;
-            gap:12px;
-        }
+body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Segoe UI',sans-serif;
+    background:linear-gradient(135deg,var(--soft-bg),var(--soft-bg-2),var(--soft-bg));
+    color:#1f2937;
+}
 
-        .brand-icon{
-            width:58px;
-            height:58px;
-            border-radius:20px;
-            background:white;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            overflow:hidden;
-            box-shadow:0 10px 25px rgba(0,0,0,.15);
-        }
+.hero{
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
+    color:white;
+    border-radius:0 0 34px 34px;
+    padding:22px 16px 24px;
+    box-shadow:0 18px 40px rgba(15,23,42,.22);
+}
 
-        .brand-icon img{
-            width:58px;
-            height:58px;
-            object-fit:cover;
-        }
+.hero::before{
+    content:"";
+    position:absolute;
+    width:190px;
+    height:190px;
+    border-radius:50%;
+    background:rgba(255,255,255,.16);
+    top:-80px;
+    right:-60px;
+}
 
-        .brand h1{
-            margin:0;
-            font-size:25px;
-            font-weight:900;
-        }
+.hero-inner{
+    position:relative;
+    z-index:2;
+    max-width:1100px;
+    margin:auto;
+}
 
-        .brand p{
-            margin:3px 0 0;
-            font-size:13px;
-            opacity:.95;
-        }
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+}
 
-        .hamburger{
-            width:48px;
-            height:48px;
-            border:none;
-            border-radius:18px;
-            background:rgba(255,255,255,.2);
-            color:white;
-            font-size:25px;
-            cursor:pointer;
-            backdrop-filter:blur(10px);
-        }
+.brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
 
-        .user-menu-wrap{
-            position:relative;
-        }
+.brand-icon{
+    width:58px;
+    height:58px;
+    border-radius:20px;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    box-shadow:0 10px 25px rgba(0,0,0,.15);
+}
 
-        .user-dropdown{
+.brand-icon img{
+    width:58px;
+    height:58px;
+    object-fit:cover;
+}
+
+.brand h1{
+    margin:0;
+    font-size:25px;
+    font-weight:900;
+}
+
+.brand p{
+    margin:3px 0 0;
+    font-size:13px;
+    opacity:.95;
+}
+
+.hamburger{
+    width:48px;
+    height:48px;
+    border:none;
+    border-radius:18px;
+    background:rgba(255,255,255,.2);
+    color:white;
+    font-size:25px;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+}
+
+.user-menu-wrap{
+    position:relative;
+}
+
+.user-dropdown{
     position:fixed;
     top:92px;
     right:22px;
     width:270px;
     max-height:calc(100vh - 120px);
     overflow-y:auto;
-
     background:rgba(255,255,255,.98);
     backdrop-filter:blur(18px);
     border-radius:26px;
@@ -130,7 +152,305 @@
     animation:menuPop .22s ease;
 }
 
+@keyframes menuPop{
+    from{
+        opacity:0;
+        transform:translateY(-8px) scale(.96);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0) scale(1);
+    }
+}
+
+.user-info{
+    padding:12px;
+    border-bottom:1px solid #fed7aa;
+    margin-bottom:10px;
+}
+
+.user-info b{
+    display:block;
+    color:var(--text-color);
+    font-size:16px;
+}
+
+.user-info small{
+    color:#6b7280;
+    font-size:12px;
+}
+
+.menu-item{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:13px 14px;
+    border-radius:16px;
+    text-decoration:none;
+    color:var(--text-color);
+    font-weight:900;
+    background:white;
+    margin-bottom:7px;
+    border:none;
+    cursor:pointer;
+    text-align:left;
+}
+
+.menu-item:hover{
+    background:var(--soft-bg);
+}
+
+.logout-btn{
+    background:#fee2e2;
+    color:#b91c1c;
+}
+
+.search-box{
+    margin-top:18px;
+    background:white;
+    border-radius:22px;
+    padding:12px 15px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    box-shadow:0 12px 25px rgba(0,0,0,.12);
+}
+
+.search-box input{
+    border:none;
+    outline:none;
+    width:100%;
+    font-size:15px;
+    background:none;
+}
+
+.wallet-card{
+    margin-top:18px;
+    background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
+    border-radius:30px;
+    padding:20px;
+    box-shadow:0 18px 35px rgba(15,23,42,.20);
+    position:relative;
+    overflow:hidden;
+}
+
+.wallet-card::after{
+    content:"";
+    position:absolute;
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    background:rgba(255,255,255,.13);
+    right:-45px;
+    top:-45px;
+}
+
+.wallet-content{
+    position:relative;
+    z-index:2;
+}
+
+.wallet-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.wallet-label{
+    font-size:14px;
+    opacity:.92;
+}
+
+.wallet-balance{
+    font-size:30px;
+    font-weight:900;
+    margin-top:6px;
+}
+
+.eye-btn{
+    border:none;
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:rgba(255,255,255,.22);
+    color:white;
+    font-size:20px;
+    cursor:pointer;
+}
+
+.wallet-actions{
+    margin-top:18px;
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+}
+
+.wallet-actions a{
+    text-align:center;
+    padding:12px;
+    border-radius:17px;
+    text-decoration:none;
+    font-weight:900;
+}
+
+.topup-btn{
+    background:white;
+    color:var(--primary-color);
+}
+
+.withdraw-btn{
+    background:rgba(255,255,255,.2);
+    color:white;
+    border:1px solid rgba(255,255,255,.28);
+}
+
+.quick-menu{
+    margin-top:20px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.quick-menu a{
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(255,255,255,.7);
+    border-radius:24px;
+    padding:15px 8px;
+    text-align:center;
+    text-decoration:none;
+    box-shadow:0 10px 24px rgba(15,23,42,.08);
+}
+
+.quick-icon{
+    font-size:32px;
+    line-height:1;
+}
+
+.quick-title{
+    margin-top:8px;
+    color:var(--text-color);
+    font-size:13px;
+    font-weight:900;
+}
+
+main{
+    max-width:1100px;
+    margin:auto;
+    padding:22px 14px 100px;
+}
+
+.food-card{
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(255,255,255,.75);
+    border-radius:24px;
+    padding:18px;
+    box-shadow:0 12px 30px rgba(15,23,42,.08);
+    margin-bottom:18px;
+}
+
+.alert-success{
+    border-left:6px solid #16a34a;
+    color:#166534;
+    font-weight:800;
+}
+
+.alert-error{
+    border-left:6px solid #dc2626;
+    color:#991b1b;
+    font-weight:800;
+}
+
+.bottom-nav{
+    position:fixed;
+    left:14px;
+    right:14px;
+    bottom:14px;
+    z-index:999;
+    background:rgba(255,255,255,.97);
+    border:1px solid rgba(255,255,255,.85);
+    border-radius:28px;
+    box-shadow:0 18px 45px rgba(15,23,42,.22);
+    display:none;
+    grid-template-columns:repeat(5,1fr);
+    overflow:hidden;
+    backdrop-filter:blur(14px);
+}
+
+.bottom-nav a{
+    position:relative;
+    text-align:center;
+    padding:10px 4px 9px;
+    font-size:11px;
+    font-weight:900;
+    color:var(--text-color);
+    text-decoration:none;
+}
+
+.bottom-nav a.active{
+    color:var(--primary-color);
+}
+
+.bottom-nav span{
+    display:block;
+    font-size:22px;
+    line-height:22px;
+    margin-bottom:3px;
+}
+
+.nav-dot{
+    position:absolute;
+    top:7px;
+    right:25%;
+    background:#dc2626;
+    color:white;
+    font-size:10px;
+    min-width:17px;
+    height:17px;
+    border-radius:999px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    font-style:normal;
+}
+
 @media(max-width:640px){
+    .hero{
+        border-radius:0 0 28px 28px;
+    }
+
+    .brand h1{
+        font-size:22px;
+    }
+
+    .brand-icon{
+        width:48px;
+        height:48px;
+        border-radius:16px;
+    }
+
+    .brand-icon img{
+        width:48px;
+        height:48px;
+    }
+
+    .quick-menu{
+        gap:10px;
+    }
+
+    .quick-menu a{
+        border-radius:20px;
+        padding:13px 6px;
+    }
+
+    main{
+        padding:18px 12px 96px;
+    }
+
+    .bottom-nav{
+        display:grid;
+    }
+
     .user-dropdown{
         top:78px;
         right:12px;
@@ -139,301 +459,7 @@
         max-height:calc(100vh - 100px);
     }
 }
-
-        @keyframes menuPop{
-            from{opacity:0;transform:translateY(-8px) scale(.96)}
-            to{opacity:1;transform:translateY(0) scale(1)}
-        }
-
-        .user-info{
-            padding:12px;
-            border-bottom:1px solid #fed7aa;
-            margin-bottom:10px;
-        }
-
-        .user-info b{
-            display:block;
-            color:#9a3412;
-            font-size:16px;
-        }
-
-        .user-info small{
-            color:#6b7280;
-            font-size:12px;
-        }
-
-        .menu-item{
-            width:100%;
-            display:flex;
-            align-items:center;
-            gap:10px;
-            padding:13px 14px;
-            border-radius:16px;
-            text-decoration:none;
-            color:#9a3412;
-            font-weight:900;
-            background:white;
-            margin-bottom:7px;
-            border:none;
-            cursor:pointer;
-            text-align:left;
-        }
-
-        .menu-item:hover{
-            background:#fff7ed;
-        }
-
-        .logout-btn{
-            background:#fee2e2;
-            color:#b91c1c;
-        }
-
-        .search-box{
-            margin-top:18px;
-            background:white;
-            border-radius:22px;
-            padding:12px 15px;
-            display:flex;
-            gap:10px;
-            align-items:center;
-            box-shadow:0 12px 25px rgba(0,0,0,.12);
-        }
-
-        .search-box input{
-            border:none;
-            outline:none;
-            width:100%;
-            font-size:15px;
-            background:none;
-        }
-
-        .wallet-card{
-            margin-top:18px;
-            background:linear-gradient(135deg,#ea580c,#fb923c,#fdba74);
-            border-radius:30px;
-            padding:20px;
-            box-shadow:0 18px 35px rgba(249,115,22,.35);
-            position:relative;
-            overflow:hidden;
-        }
-
-        .wallet-card::after{
-            content:"";
-            position:absolute;
-            width:150px;
-            height:150px;
-            border-radius:50%;
-            background:rgba(255,255,255,.13);
-            right:-45px;
-            top:-45px;
-        }
-
-        .wallet-content{
-            position:relative;
-            z-index:2;
-        }
-
-        .wallet-top{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-        }
-
-        .wallet-label{
-            font-size:14px;
-            opacity:.92;
-        }
-
-        .wallet-balance{
-            font-size:30px;
-            font-weight:900;
-            margin-top:6px;
-        }
-
-        .eye-btn{
-            border:none;
-            width:44px;
-            height:44px;
-            border-radius:50%;
-            background:rgba(255,255,255,.22);
-            color:white;
-            font-size:20px;
-            cursor:pointer;
-        }
-
-        .wallet-actions{
-            margin-top:18px;
-            display:grid;
-            grid-template-columns:repeat(2,1fr);
-            gap:10px;
-        }
-
-        .wallet-actions a{
-            text-align:center;
-            padding:12px;
-            border-radius:17px;
-            text-decoration:none;
-            font-weight:900;
-        }
-
-        .topup-btn{
-            background:white;
-            color:#ea580c;
-        }
-
-        .withdraw-btn{
-            background:rgba(255,255,255,.2);
-            color:white;
-            border:1px solid rgba(255,255,255,.28);
-        }
-
-        .quick-menu{
-            margin-top:20px;
-            display:grid;
-            grid-template-columns:repeat(4,1fr);
-            gap:12px;
-        }
-
-        .quick-menu a{
-            background:rgba(255,255,255,.94);
-            border:1px solid rgba(255,255,255,.7);
-            border-radius:24px;
-            padding:15px 8px;
-            text-align:center;
-            text-decoration:none;
-            box-shadow:0 10px 24px rgba(15,23,42,.08);
-        }
-
-        .quick-icon{
-            font-size:32px;
-            line-height:1;
-        }
-
-        .quick-title{
-            margin-top:8px;
-            color:#9a3412;
-            font-size:13px;
-            font-weight:900;
-        }
-
-        main{
-            max-width:1100px;
-            margin:auto;
-            padding:22px 14px 100px;
-        }
-
-        .food-card{
-            background:rgba(255,255,255,.94);
-            border:1px solid rgba(255,255,255,.75);
-            border-radius:24px;
-            padding:18px;
-            box-shadow:0 12px 30px rgba(15,23,42,.08);
-            margin-bottom:18px;
-        }
-
-        .alert-success{
-            border-left:6px solid #16a34a;
-            color:#166534;
-            font-weight:800;
-        }
-
-        .alert-error{
-            border-left:6px solid #dc2626;
-            color:#991b1b;
-            font-weight:800;
-        }
-
-        .bottom-nav{
-            position:fixed;
-            left:14px;
-            right:14px;
-            bottom:14px;
-            z-index:999;
-            background:rgba(255,255,255,.97);
-            border:1px solid rgba(255,255,255,.85);
-            border-radius:28px;
-            box-shadow:0 18px 45px rgba(15,23,42,.22);
-            display:none;
-            grid-template-columns:repeat(5,1fr);
-            overflow:hidden;
-            backdrop-filter:blur(14px);
-        }
-
-        .bottom-nav a{
-            position:relative;
-            text-align:center;
-            padding:10px 4px 9px;
-            font-size:11px;
-            font-weight:900;
-            color:#9a3412;
-            text-decoration:none;
-        }
-
-        .bottom-nav a.active{
-            color:#f97316;
-        }
-
-        .bottom-nav span{
-            display:block;
-            font-size:22px;
-            line-height:22px;
-            margin-bottom:3px;
-        }
-
-        .nav-dot{
-            position:absolute;
-            top:7px;
-            right:25%;
-            background:#dc2626;
-            color:white;
-            font-size:10px;
-            min-width:17px;
-            height:17px;
-            border-radius:999px;
-            display:none;
-            align-items:center;
-            justify-content:center;
-            font-style:normal;
-        }
-
-        @media(max-width:640px){
-            .hero{
-                border-radius:0 0 28px 28px;
-            }
-
-            .brand h1{
-                font-size:22px;
-            }
-
-            .brand-icon{
-                width:48px;
-                height:48px;
-                border-radius:16px;
-            }
-
-            .brand-icon img{
-                width:48px;
-                height:48px;
-            }
-
-            .quick-menu{
-                gap:10px;
-            }
-
-            .quick-menu a{
-                border-radius:20px;
-                padding:13px 6px;
-            }
-
-            main{
-                padding:18px 12px 96px;
-            }
-
-            .bottom-nav{
-                display:grid;
-            }
-        }
-    </style>
+</style>
 </head>
 
 <body>
@@ -444,11 +470,11 @@
         <div class="topbar">
             <div class="brand">
                 <div class="brand-icon">
-                    <img src="{{ asset('images/logo-javajek.png') }}" alt="JavaJek">
+                    <img src="{{ $customerLogo }}" alt="{{ $appName }}">
                 </div>
 
                 <div>
-                    <h1 id="greetingText">JavaJek Food</h1>
+                    <h1 id="greetingText">{{ $appName }}</h1>
                     <p>Halo, {{ auth()->user()->name }}</p>
                 </div>
             </div>
@@ -510,9 +536,9 @@
                 <div class="quick-title">J-Ride</div>
             </a>
 
-            <a href="/merchant">
-                <div class="quick-icon">🏪</div>
-                <div class="quick-title">Merchant</div>
+            <a href="/car">
+                <div class="quick-icon">🚗</div>
+                <div class="quick-title">J-Car</div>
             </a>
 
             <a href="/my-orders">

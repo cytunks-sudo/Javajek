@@ -14,9 +14,9 @@ return new class extends Migration
 {
     Schema::create('ride_settings', function (Blueprint $table) {
         $table->id();
-        $table->decimal('base_fee', 12, 2)->default(5000);
-        $table->decimal('per_km_fee', 12, 2)->default(2500);
-        $table->decimal('minimum_fee', 12, 2)->default(8000);
+        $table->decimal('base_fee', 10,0)->default(5000);
+        $table->decimal('per_km_fee', 10, 2)->default(2500);
+        $table->decimal('minimum_fee', 10, 2)->default(8000);
         $table->timestamps();
     });
 

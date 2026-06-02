@@ -2,6 +2,13 @@
 
 @section('content')
 
+@php
+    $appSetting = \App\Models\AppSetting::first();
+    $driverRadiusKm = $appSetting->customer_driver_radius ?? 5;
+    $primaryColor = $appSetting->primary_color ?? '#f97316';
+    $secondaryColor = $appSetting->secondary_color ?? '#fb923c';
+@endphp
+
 <div class="food-card merchant-near-card">
     <div class="home-section-head">
         <h2 class="section-title">Merchant Terdekat</h2>
@@ -35,7 +42,6 @@
     </div>
 </div>
 
-
 <div class="driver-map-card">
     <div class="driver-map-head">
         <div>
@@ -51,7 +57,6 @@
 
     <div id="customerDriverMap"></div>
 </div>
-
 
 <div class="food-card">
     <div class="home-section-head">
@@ -98,7 +103,6 @@
     </div>
 </div>
 
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -110,7 +114,7 @@
 .section-title{
     font-size:20px;
     font-weight:900;
-    color:#9a3412;
+    color:var(--primary-color, {{ $primaryColor }});
     margin:0;
 }
 
@@ -128,7 +132,7 @@
 
 .product-card{
     background:#ffffff;
-    border:1px solid #fed7aa;
+    border:1px solid rgba(15,23,42,.08);
     border-radius:18px;
     overflow:hidden;
     box-shadow:0 8px 18px rgba(15,23,42,.08);
@@ -146,7 +150,7 @@
     height:92px;
     object-fit:cover;
     display:block;
-    background:#ffedd5;
+    background:rgba(15,23,42,.05);
 }
 
 .product-empty{
@@ -166,7 +170,7 @@
 .product-body h3{
     font-size:13px;
     font-weight:900;
-    color:#9a3412;
+    color:var(--primary-color, {{ $primaryColor }});
     margin:0 0 4px;
     line-height:1.2;
 }
@@ -201,7 +205,7 @@
 }
 
 .product-price{
-    color:#ea580c;
+    color:var(--primary-color, {{ $primaryColor }});
     font-size:13px;
     font-weight:900;
     margin-bottom:8px;
@@ -211,20 +215,20 @@
     display:block;
     width:100%;
     text-align:center;
-    background:linear-gradient(135deg,#f97316,#fb923c);
+    background:linear-gradient(135deg,var(--primary-color, {{ $primaryColor }}),var(--secondary-color, {{ $secondaryColor }}));
     color:white;
     padding:8px;
     border-radius:12px;
     font-size:11px;
     font-weight:900;
     text-decoration:none;
-    box-shadow:0 6px 14px rgba(249,115,22,.22);
+    box-shadow:0 6px 14px rgba(15,23,42,.16);
 }
 
 .empty-product{
     grid-column:1 / -1;
-    background:#fff7ed;
-    color:#9a3412;
+    background:rgba(15,23,42,.04);
+    color:var(--primary-color, {{ $primaryColor }});
     padding:14px;
     border-radius:16px;
     font-weight:900;
@@ -236,7 +240,7 @@
 
 .driver-map-card{
     background:white;
-    border:1px solid #fed7aa;
+    border:1px solid rgba(15,23,42,.08);
     border-radius:22px;
     padding:12px;
     margin-bottom:14px;
@@ -253,7 +257,7 @@
 
 .driver-map-head h3{
     margin:0;
-    color:#9a3412;
+    color:var(--primary-color, {{ $primaryColor }});
     font-size:17px;
     font-weight:900;
 }
@@ -268,13 +272,13 @@
     min-width:56px;
     height:56px;
     border-radius:18px;
-    background:linear-gradient(135deg,#f97316,#fb923c);
+    background:linear-gradient(135deg,var(--primary-color, {{ $primaryColor }}),var(--secondary-color, {{ $secondaryColor }}));
     color:white;
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    box-shadow:0 8px 18px rgba(249,115,22,.22);
+    box-shadow:0 8px 18px rgba(15,23,42,.16);
 }
 
 .driver-count span{
@@ -321,8 +325,10 @@
 }
 </style>
 
-
 <script>
+const DRIVER_RADIUS_KM = {{ (float) $driverRadiusKm }};
+const PRIMARY_COLOR = "{{ $primaryColor }}";
+
 let customerMap = null;
 let customerMarker = null;
 let customerRadius = null;
@@ -336,21 +342,12 @@ function initCustomerDriverMap(lat, lng){
     customerLng = parseFloat(lng);
 
     if(!customerMap){
-        customerMap = L.map('customerDriverMap').setView([customerLat, customerLng], 15);
+        customerMap = L.map('customerDriverMap').setView([customerLat, customerLng], 13);
 
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap'
         }).addTo(customerMap);
-
-        setTimeout(function(){
-            customerMap.invalidateSize();
-        }, 700);
-    }
-
-    if(firstCustomerMapLoad){
-        customerMap.setView([customerLat, customerLng], 15);
-        firstCustomerMapLoad = false;
     }
 
     let userIcon = L.icon({
@@ -367,24 +364,30 @@ function initCustomerDriverMap(lat, lng){
             icon: userIcon
         })
         .addTo(customerMap)
-        .bindPopup(`
-            <div style="text-align:center;font-weight:900;color:#2563eb;">
-                📍 Lokasi Anda
-            </div>
-        `);
+        .bindPopup('📍 Lokasi Anda');
     }
 
     if(customerRadius){
         customerRadius.setLatLng([customerLat, customerLng]);
+        customerRadius.setRadius(DRIVER_RADIUS_KM * 1000);
     }else{
         customerRadius = L.circle([customerLat, customerLng], {
-            radius: 100,
-            color: '#2563eb',
-            fillColor: '#3b82f6',
-            fillOpacity: 0.12,
+            radius: DRIVER_RADIUS_KM * 1000,
+            color: PRIMARY_COLOR,
+            fillColor: PRIMARY_COLOR,
+            fillOpacity: 0.15,
             weight: 2
         }).addTo(customerMap);
     }
+
+    if(firstCustomerMapLoad){
+        customerMap.fitBounds(customerRadius.getBounds());
+        firstCustomerMapLoad = false;
+    }
+
+    setTimeout(function(){
+        customerMap.invalidateSize();
+    }, 500);
 
     loadActiveDrivers();
 }
@@ -428,9 +431,7 @@ function calculateDistanceKm(lat1, lng1, lat2, lng2){
         Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLng / 2) * Math.sin(dLng / 2);
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 function loadActiveDrivers(){
@@ -441,7 +442,6 @@ function loadActiveDrivers(){
     fetch('/active-drivers')
         .then(res => res.json())
         .then(data => {
-
             customerDriverMarkers.forEach(function(marker){
                 customerMap.removeLayer(marker);
             });
@@ -450,8 +450,13 @@ function loadActiveDrivers(){
 
             let count = 0;
 
-            data.drivers.forEach(function(driver){
+            if(!data || !Array.isArray(data.drivers)){
+                document.getElementById('driverMapInfo').innerText = 'Data driver tidak valid.';
+                document.getElementById('driverCount').innerText = 0;
+                return;
+            }
 
+            data.drivers.forEach(function(driver){
                 let dLat = parseFloat(driver.latitude);
                 let dLng = parseFloat(driver.longitude);
 
@@ -461,36 +466,44 @@ function loadActiveDrivers(){
 
                 let type = (driver.vehicle_type ?? 'motor').toLowerCase();
 
+                let distanceKm = driver.distance
+                    ? parseFloat(driver.distance)
+                    : calculateDistanceKm(customerLat, customerLng, dLat, dLng);
+
+                if(isNaN(distanceKm)){
+                    return;
+                }
+
+                if(distanceKm > DRIVER_RADIUS_KM){
+                    return;
+                }
+
+                let markerLat = dLat;
+                let markerLng = dLng;
+
                 if(type === 'mobil'){
-                    dLng = dLng + 0.00018;
+                    markerLng = markerLng + 0.00018;
                 }
 
                 if(type === 'motor'){
-                    dLng = dLng - 0.00018;
+                    markerLng = markerLng - 0.00018;
                 }
 
                 if(
-                    Math.abs(dLat - customerLat) < 0.00001 &&
-                    Math.abs(dLng - customerLng) < 0.00001
+                    Math.abs(markerLat - customerLat) < 0.00001 &&
+                    Math.abs(markerLng - customerLng) < 0.00001
                 ){
-                    dLat = dLat + 0.00015;
-                    dLng = dLng + 0.00015;
+                    markerLat = markerLat + 0.00015;
+                    markerLng = markerLng + 0.00015;
                 }
 
-                let distanceKm = driver.distance ?? calculateDistanceKm(
-                    customerLat,
-                    customerLng,
-                    dLat,
-                    dLng
-                ).toFixed(1);
-
-                let marker = L.marker([dLat, dLng], {
+                let marker = L.marker([markerLat, markerLng], {
                     icon: createDriverIcon(type)
                 })
                 .addTo(customerMap)
                 .bindPopup(`
                     <div style="min-width:180px;font-family:Segoe UI;">
-                        <div style="font-weight:900;color:#ea580c;margin-bottom:6px;">
+                        <div style="font-weight:900;color:${PRIMARY_COLOR};margin-bottom:6px;">
                             ${type === 'mobil' ? '🚗 Mobil Aktif' : '🛵 Motor Aktif'}
                         </div>
 
@@ -511,7 +524,7 @@ function loadActiveDrivers(){
 
                         <div>
                             Jarak:
-                            <b>${distanceKm} km</b>
+                            <b>${distanceKm.toFixed(1)} km</b>
                         </div>
                     </div>
                 `);
@@ -524,14 +537,13 @@ function loadActiveDrivers(){
 
             document.getElementById('driverMapInfo').innerText =
                 count > 0
-                    ? count + ' driver aktif tersedia di sekitar Anda.'
-                    : 'Belum ada driver aktif.';
+                    ? count + ' driver aktif dalam radius ' + DRIVER_RADIUS_KM + ' km.'
+                    : 'Tidak ada driver dalam radius ' + DRIVER_RADIUS_KM + ' km.';
         })
         .catch(function(error){
             console.log('active drivers error:', error);
-
-            document.getElementById('driverMapInfo').innerText =
-                'Gagal memuat data driver.';
+            document.getElementById('driverMapInfo').innerText = 'Gagal memuat data driver.';
+            document.getElementById('driverCount').innerText = 0;
         });
 }
 

@@ -10,23 +10,52 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::updateOrCreate(
-            ['email' => 'admin@javajek.com'],
+        User::updateOrCreate(
+            ['username' => 'admin'],
             [
                 'name' => 'Administrator',
-                'password' => Hash::make('admin123'),
+                'email' => 'admin@javajek.local',
+                'phone' => '080000000001',
+                'address' => 'JavaJek Admin',
+                'password' => Hash::make('admin'),
                 'role' => 'admin',
             ]
         );
 
-        $user->roles()->updateOrCreate(
-            ['role' => 'admin'],
-            ['status' => 'approved']
+        User::updateOrCreate(
+            ['username' => 'merchant'],
+            [
+                'name' => 'Merchant Demo',
+                'email' => 'merchant@javajek.local',
+                'phone' => '080000000002',
+                'address' => 'JavaJek Merchant',
+                'password' => Hash::make('merchant'),
+                'role' => 'merchant',
+            ]
         );
 
-        $user->roles()->updateOrCreate(
-            ['role' => 'customer'],
-            ['status' => 'approved']
+        User::updateOrCreate(
+            ['username' => 'driver'],
+            [
+                'name' => 'Driver Demo',
+                'email' => 'driver@javajek.local',
+                'phone' => '080000000003',
+                'address' => 'JavaJek Driver',
+                'password' => Hash::make('driver'),
+                'role' => 'driver',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['username' => 'customer'],
+            [
+                'name' => 'Customer Demo',
+                'email' => 'customer@javajek.local',
+                'phone' => '080000000004',
+                'address' => 'JavaJek Customer',
+                'password' => Hash::make('customer'),
+                'role' => 'customer',
+            ]
         );
     }
 }

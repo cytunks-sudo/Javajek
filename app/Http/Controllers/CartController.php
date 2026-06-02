@@ -242,11 +242,24 @@ public function decrease($id)
     }
 
     public function orders()
-    {
-        $orders = Order::where('user_id', Auth::id())
-            ->latest()
-            ->get();
+{
+    $orders = \App\Models\Order::where('user_id', auth()->id())
+        ->whereNotIn('status', ['completed', 'cancelled'])
+        ->latest()
+        ->get();
 
-        return view('cart.orders', compact('orders'));
-    }
+    return view('cart.orders', compact('orders'));
+}
+
+public function orderHistory()
+{
+    $orders = \App\Models\Order::where('user_id', auth()->id())
+        ->whereIn('status', ['completed', 'cancelled'])
+        ->latest()
+        ->get();
+
+    return view('cart.order-history', compact('orders'));
+}
+
+
 }

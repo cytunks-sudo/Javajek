@@ -13,10 +13,12 @@ class RoleRedirect
             return redirect('/login');
         }
 
-        if (!auth()->user()->hasRole($role)) {
-            abort(403);
+        $user = auth()->user();
+
+        if ($user->role === $role || $user->hasRole($role)) {
+            return $next($request);
         }
 
-        return $next($request);
+        abort(403);
     }
 }

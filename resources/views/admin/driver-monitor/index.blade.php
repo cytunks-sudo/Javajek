@@ -57,8 +57,48 @@
     font-size: 14px;
 }
 
+.driver-stats-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:14px;
+}
+
+.driver-stat-card{
+    border:none;
+    text-align:left;
+    background:white;
+    border-radius:18px;
+    padding:16px 18px;
+    box-shadow:0 8px 25px rgba(0,0,0,.08);
+    font-weight:900;
+    cursor:pointer;
+}
+
+@media(max-width:700px){
+    .driver-stats-grid{
+        grid-template-columns:1fr;
+    }
+}
+
 .driver-info-row span:first-child {
     color: #6b7280;
+}
+
+.driver-list-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.driver-list-table td{
+    padding:10px;
+    border-bottom:1px solid #eee;
+    font-size:14px;
+}
+
+.driver-list-empty{
+    color:#9ca3af;
+    font-style:italic;
 }
 
 .btn-close-modal {
@@ -70,17 +110,70 @@
     width: 100%;
     margin-top: 18px;
 }
+.page-title-box{
+    background:white;
+    border-radius:15px;
+    padding:10px 10px;
+    margin-bottom:18px;
+    border:1px solid #fed7aa;
+    box-shadow:0 12px 28px rgba(15,23,42,.08);
+}
+
+.page-title-box h2{
+    margin:0;
+    font-size:25px;
+    font-weight:900;
+    color:#9a3412;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.page-title-box p{
+    margin:8px 0 0;
+    color:#6b7280;
+    font-size:14px;
+    font-weight:500;
+}
+
+@media(max-width:768px){
+
+    .page-title-box{
+        padding:18px;
+    }
+
+    .page-title-box h2{
+        font-size:24px;
+    }
+
+}
 </style>
 
 <div class="container-fluid">
 
-    <h4>Monitoring Driver</h4>
-    <p>Pantau posisi driver online secara live</p>
+   <div class="page-title-box">
+    <h2>🗺️ Monitoring Driver</h2>
+    <p>Pantau posisi driver online secara realtime.</p>
+</div>
 
-    <div class="driver-stat-card">
+   <div class="driver-stats-grid">
+
+    <button class="driver-stat-card" onclick="openListModal('online')">
         <span class="driver-dot dot-online"></span>
-        Driver Online: <b id="driverCount">0</b>
-    </div>
+        Online: <b id="onlineCount">0</b>
+    </button>
+
+    <button class="driver-stat-card" onclick="openListModal('busy')">
+        <span class="driver-dot dot-busy"></span>
+        Busy: <b id="busyCount">0</b>
+    </button>
+
+    <button class="driver-stat-card" onclick="openListModal('offline')">
+        <span class="driver-dot dot-offline"></span>
+        Offline: <b id="offlineCount">0</b>
+    </button>
+
+</div>
 
     <div id="driverMap" style="height:75vh;width:100%;border:1px solid #ddd;border-radius:18px;"></div>
 
@@ -131,6 +224,26 @@
     </div>
 </div>
 
+<div class="driver-modal-overlay" id="driverListModal">
+    <div class="driver-modal" style="max-width:760px;">
+        <h4 id="driverListTitle">Daftar Driver</h4>
+
+        <h5>🚗 Mobil</h5>
+        <table class="driver-list-table">
+            <tbody id="mobilList"></tbody>
+        </table>
+
+        <h5 style="margin-top:18px;">🛵 Motor</h5>
+        <table class="driver-list-table">
+            <tbody id="motorList"></tbody>
+        </table>
+
+        <button type="button" class="btn-close-modal" onclick="closeListModal()">
+            Tutup
+        </button>
+    </div>
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
@@ -144,6 +257,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let markers = {};
     let firstLoad = true;
+    let allDrivers = [];
 
     function getMarkerColor(status) {
         if (status === 'online') return '#22c55e';
@@ -196,6 +310,49 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('driverModalOverlay').style.display = 'none';
     }
 
+window.openListModal = function(status){
+    let title = status.toUpperCase();
+
+    document.getElementById('driverListTitle').innerText =
+        'Daftar Driver ' + title;
+
+    let drivers = allDrivers.filter(d => d.status === status);
+
+    let mobil = drivers.filter(d => d.vehicle_type === 'mobil');
+    let motor = drivers.filter(d => d.vehicle_type === 'motor');
+
+    renderDriverRows('mobilList', mobil);
+    renderDriverRows('motorList', motor);
+
+    document.getElementById('driverListModal').style.display = 'flex';
+}
+
+window.closeListModal = function(){
+    document.getElementById('driverListModal').style.display = 'none';
+}
+
+function renderDriverRows(targetId, drivers){
+    let target = document.getElementById(targetId);
+
+    if(drivers.length < 1){
+        target.innerHTML = `
+            <tr>
+                <td class="driver-list-empty">Tidak ada driver.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    target.innerHTML = drivers.map(driver => `
+        <tr>
+            <td><b>${driver.name ?? '-'}</b></td>
+            <td>${driver.phone ?? '-'}</td>
+            <td>${driver.plate_number ?? '-'}</td>
+            <td>${driver.status ?? '-'}</td>
+        </tr>
+    `).join('');
+}
+
     window.showDriverDetail = function (driver) {
         openDriverModal(driver);
     }
@@ -204,8 +361,16 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch("{{ route('admin.driver.monitor.data') }}")
             .then(response => response.json())
             .then(data => {
-                document.getElementById('driverCount').innerText = data.drivers.length;
+                allDrivers = data.drivers;
 
+document.getElementById('onlineCount').innerText =
+    allDrivers.filter(d => d.status === 'online').length;
+
+document.getElementById('busyCount').innerText =
+    allDrivers.filter(d => d.status === 'busy').length;
+
+document.getElementById('offlineCount').innerText =
+    allDrivers.filter(d => d.status === 'offline').length;
                 let activeIds = [];
 
                 data.drivers.forEach(driver => {

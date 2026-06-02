@@ -13,11 +13,31 @@ use App\Models\RideSetting;
 class OrderController extends Controller
 {
     public function show($id)
-    {
-        $order = Order::findOrFail($id);
+{
+    $order = Order::findOrFail($id);
 
-        return view('orders.show', compact('order'));
+    return view('orders.show', compact('order'));
+}
+
+public function driverLocation($id)
+{
+    $order = Order::with('driver')->findOrFail($id);
+
+    if (!$order->driver) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Driver belum tersedia.'
+        ]);
     }
+
+    return response()->json([
+        'success' => true,
+        'latitude' => $order->driver->latitude,
+        'longitude' => $order->driver->longitude,
+        'status' => $order->status,
+        'driver_name' => $order->driver->user->name ?? 'Driver'
+    ]);
+}
 
     public function checkoutPage()
     {
@@ -61,76 +81,89 @@ class OrderController extends Controller
     }
 
     public function storeOrder()
-    {
-        $cart = session('cart', []);
-        $checkout = session('checkout_data');
+{
+    $cart = session('cart', []);
+    $checkout = session('checkout_data');
 
-        if (!$checkout || count($cart) < 1) {
-            return redirect('/cart');
-        }
-
-        foreach ($checkout['merchant_summaries'] as $summary) {
-
-            $order = new Order();
-
-            $order->user_id = Auth::id();
-
-            if (Schema::hasColumn('orders', 'restaurant_id')) {
-                $order->restaurant_id = $summary['restaurant_id'];
-            }
-
-            if (Schema::hasColumn('orders', 'driver_id')) {
-                $order->driver_id = null;
-            }
-
-            if (Schema::hasColumn('orders', 'total')) {
-                $order->total = $summary['merchant_total'];
-            }
-
-            if (Schema::hasColumn('orders', 'delivery_fee')) {
-                $order->delivery_fee = $summary['delivery_fee'];
-            }
-
-            if (Schema::hasColumn('orders', 'distance_km')) {
-                $order->distance_km = $summary['distance_km'];
-            }
-
-            if (Schema::hasColumn('orders', 'address')) {
-                $order->address = $checkout['address'];
-            }
-
-            if (Schema::hasColumn('orders', 'latitude')) {
-                $order->latitude = $checkout['latitude'];
-            }
-
-            if (Schema::hasColumn('orders', 'longitude')) {
-                $order->longitude = $checkout['longitude'];
-            }
-
-            if (Schema::hasColumn('orders', 'status')) {
-                $order->status = 'searching_driver';
-            }
-
-            if (Schema::hasColumn('orders', 'merchant_status')) {
-                $order->merchant_status = 'pending';
-            }
-
-            if (Schema::hasColumn('orders', 'driver_status')) {
-                $order->driver_status = 'pending';
-            }
-
-            if (Schema::hasColumn('orders', 'driver_reject_count')) {
-                $order->driver_reject_count = 0;
-            }
-
-            $order->save();
-        }
-
-        session()->forget('cart');
-        session()->forget('checkout_data');
-
-        return redirect('/my-orders');
+    if (!$checkout || count($cart) < 1) {
+        return redirect('/cart');
     }
+
+    foreach ($checkout['merchant_summaries'] as $summary) {
+
+        $order = new Order();
+
+        $order->order_number =
+        Order::generateOrderNumber('food');
+
+        $order->user_id = Auth::id();
+
+        if (Schema::hasColumn('orders', 'restaurant_id')) {
+            $order->restaurant_id = $summary['restaurant_id'];
+        }
+
+        if (Schema::hasColumn('orders', 'driver_id')) {
+            $order->driver_id = null;
+        }
+
+        if (Schema::hasColumn('orders', 'total')) {
+            $order->total = $summary['merchant_total'];
+        }
+
+        if (Schema::hasColumn('orders', 'delivery_fee')) {
+            $order->delivery_fee = $summary['delivery_fee'];
+        }
+
+        if (Schema::hasColumn('orders', 'distance_km')) {
+            $order->distance_km = $summary['distance_km'];
+        }
+
+        if (Schema::hasColumn('orders', 'address')) {
+            $order->address = $checkout['address'];
+        }
+
+        if (Schema::hasColumn('orders', 'latitude')) {
+            $order->latitude = $checkout['latitude'];
+        }
+
+        if (Schema::hasColumn('orders', 'longitude')) {
+            $order->longitude = $checkout['longitude'];
+        }
+
+        if (Schema::hasColumn('orders', 'status')) {
+            $order->status = 'searching_driver';
+        }
+
+        if (Schema::hasColumn('orders', 'merchant_status')) {
+            $order->merchant_status = 'pending';
+        }
+
+        if (Schema::hasColumn('orders', 'driver_status')) {
+            $order->driver_status = 'pending';
+        }
+
+        if (Schema::hasColumn('orders', 'driver_reject_count')) {
+            $order->driver_reject_count = 0;
+        }
+
+        $order->save();
+
+        foreach ($summary['items'] as $item) {
+            \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'food_id'  => $item['id'],
+                'qty'      => $item['qty'],
+                'price'    => $item['price'],
+            ]);
+        }
+    }
+
+    session()->forget('cart');
+    session()->forget('checkout_data');
+
+    return redirect('/my-orders');
+}
+
 
     private function makeCheckoutSummary($cart, $customerLat, $customerLng, $address)
     {
@@ -300,11 +333,13 @@ public function storeOjekOrder()
     }
 
     $order = new Order();
+    $order->order_number =
+    Order::generateOrderNumber('ojek');
     $order->user_id = auth()->id();
     $order->total = $ojek['fare'];
     $order->status = 'searching_driver';
     $order->merchant_status = 'accepted';
-    
+
     if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'order_type')) {
         $order->order_type = 'ojek';
     }
@@ -351,4 +386,92 @@ public function storeOjekOrder()
 
     return redirect('/my-orders');
 }
+
+public function carPage()
+{
+    return view('car.index');
+}
+
+public function calculateCar(Request $request)
+{
+    $request->validate([
+        'pickup_latitude'        => 'required',
+        'pickup_longitude'       => 'required',
+        'destination_latitude'   => 'required',
+        'destination_longitude'  => 'required',
+        'pickup_address'         => 'required',
+        'destination_address'    => 'required',
+    ]);
+
+    $distanceKm = $this->calculateDistance(
+        $request->pickup_latitude,
+        $request->pickup_longitude,
+        $request->destination_latitude,
+        $request->destination_longitude
+    );
+
+    $baseFee = 10000;
+    $perKmFee = 4000;
+    $minimumFee = 15000;
+
+    $fare = $baseFee + ($distanceKm * $perKmFee);
+    $fare = max($minimumFee, $fare);
+    $fare = ceil($fare / 500) * 500;
+
+    session([
+        'car_data' => [
+            'pickup_latitude'       => $request->pickup_latitude,
+            'pickup_longitude'      => $request->pickup_longitude,
+            'destination_latitude'  => $request->destination_latitude,
+            'destination_longitude' => $request->destination_longitude,
+            'pickup_address'        => $request->pickup_address,
+            'destination_address'   => $request->destination_address,
+            'distance_km'           => round($distanceKm, 1),
+            'fare'                  => $fare,
+        ]
+    ]);
+
+    return view('car.result', [
+        'pickupAddress'      => $request->pickup_address,
+        'destinationAddress' => $request->destination_address,
+        'distanceKm'         => round($distanceKm, 1),
+        'fare'               => $fare,
+    ]);
+}
+
+public function storeCarOrder()
+{
+    $car = session('car_data');
+
+    if (!$car) {
+        return redirect('/car');
+    }
+
+    $order = new Order();
+
+    $order->order_number = Order::generateOrderNumber('car');
+
+    $order->user_id = auth()->id();
+    $order->total = $car['fare'];
+    $order->status = 'searching_driver';
+    $order->merchant_status = 'accepted';
+    $order->driver_status = 'pending';
+    $order->driver_reject_count = 0;
+    $order->order_type = 'car';
+
+    $order->pickup_latitude = $car['pickup_latitude'];
+    $order->pickup_longitude = $car['pickup_longitude'];
+    $order->destination_latitude = $car['destination_latitude'];
+    $order->destination_longitude = $car['destination_longitude'];
+    $order->pickup_address = $car['pickup_address'];
+    $order->destination_address = $car['destination_address'];
+    $order->distance_km = $car['distance_km'];
+
+    $order->save();
+
+    session()->forget('car_data');
+
+    return redirect('/my-orders');
+}
+
 }

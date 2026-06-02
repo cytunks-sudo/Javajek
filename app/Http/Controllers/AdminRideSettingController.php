@@ -17,10 +17,14 @@ class AdminRideSettingController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'base_fee' => 'required|numeric|min:0',
-            'per_km_fee' => 'required|numeric|min:0',
-            'minimum_fee' => 'required|numeric|min:0',
-        ]);
+    'base_fee' => 'required|numeric',
+    'per_km_fee' => 'required|numeric',
+    'minimum_fee' => 'required|numeric',
+
+    'car_base_fee' => 'required|numeric',
+    'car_per_km_fee' => 'required|numeric',
+    'car_minimum_fee' => 'required|numeric',
+]);
 
         $setting = RideSetting::first();
 
@@ -29,12 +33,18 @@ class AdminRideSettingController extends Controller
                 'base_fee',
                 'per_km_fee',
                 'minimum_fee',
+                'car_base_fee',
+                'car_per_km_fee',
+                'car_minimum_fee',
             ]));
         } else {
             $setting->update($request->only([
                 'base_fee',
                 'per_km_fee',
                 'minimum_fee',
+                'car_base_fee',
+                'car_per_km_fee',
+                'car_minimum_fee',
             ]));
         }
 

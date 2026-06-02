@@ -8,9 +8,26 @@ use Illuminate\Http\Request;
 
 class AdminUserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('roles')->latest()->get();
+        $search = $request->search;
+
+        $users = User::with('roles')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('role', 'like', "%{$search}%")
+                        ->orWhereHas('roles', function ($r) use ($search) {
+                            $r->where('role', 'like', "%{$search}%")
+                              ->orWhere('status', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->latest()
+            ->get();
 
         return view('admin.users.index', compact('users'));
     }
@@ -32,19 +49,27 @@ class AdminUserController extends Controller
             ]
         );
 
-        return redirect('/admin/users');
+        return redirect('/admin/users')
+            ->with('success', 'Role user berhasil diperbarui.');
     }
 
     public function destroy($id)
-{
-    $user = User::findOrFail($id);
+    {
+        $user = User::findOrFail($id);
 
-    if ($user->email == 'admin@javajek.com') {
-        return redirect('/admin/users');
+        if (
+            $user->username === 'admin' ||
+            $user->role === 'admin' ||
+            $user->email === 'admin@javajek.local'
+        ) {
+            return redirect('/admin/users')
+                ->with('error', 'Akun admin utama tidak boleh dihapus.');
+        }
+
+        $user->roles()->delete();
+        $user->delete();
+
+        return redirect('/admin/users')
+            ->with('success', 'User berhasil dihapus.');
     }
-
-    $user->delete();
-
-    return redirect('/admin/users');
-}
 }
