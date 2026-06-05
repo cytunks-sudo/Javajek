@@ -46,7 +46,7 @@
     <div class="driver-map-head">
         <div>
             <h3>🚗 Driver Aktif Di Sekitar Anda</h3>
-            <p id="driverMapInfo">Mencari driver aktif...</p>
+            <p id="driverMapInfo">Mengambil lokasi Anda...</p>
         </div>
 
         <div class="driver-count">
@@ -68,9 +68,7 @@
         @forelse($foods as $food)
             <div class="product-card">
                 @if($food->photo)
-                    <img src="{{ asset('storage/'.$food->photo) }}"
-                         class="product-img"
-                         alt="{{ $food->name }}">
+                    <img src="{{ asset('storage/'.$food->photo) }}" class="product-img" alt="{{ $food->name }}">
                 @else
                     <div class="product-img product-empty">🍔</div>
                 @endif
@@ -107,221 +105,38 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-.home-section-head{
-    margin-bottom:12px;
-}
-
-.section-title{
-    font-size:20px;
-    font-weight:900;
-    color:var(--primary-color, {{ $primaryColor }});
-    margin:0;
-}
-
-.home-section-head p{
-    margin:4px 0 0;
-    color:#6b7280;
-    font-size:12px;
-}
-
-.product-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:10px;
-}
-
-.product-card{
-    background:#ffffff;
-    border:1px solid rgba(15,23,42,.08);
-    border-radius:18px;
-    overflow:hidden;
-    box-shadow:0 8px 18px rgba(15,23,42,.08);
-    display:flex;
-    flex-direction:column;
-    transition:.2s;
-}
-
-.product-card:hover{
-    transform:translateY(-2px);
-}
-
-.product-img{
-    width:100%;
-    height:92px;
-    object-fit:cover;
-    display:block;
-    background:rgba(15,23,42,.05);
-}
-
-.product-empty{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:36px;
-}
-
-.product-body{
-    padding:9px;
-    display:flex;
-    flex-direction:column;
-    flex:1;
-}
-
-.product-body h3{
-    font-size:13px;
-    font-weight:900;
-    color:var(--primary-color, {{ $primaryColor }});
-    margin:0 0 4px;
-    line-height:1.2;
-}
-
-.product-merchant{
-    font-size:11px;
-    color:#6b7280;
-    margin:0 0 6px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
-
-.merchant-card-link{
-    text-decoration:none;
-    color:inherit;
-}
-
-.product-desc{
-    font-size:11px;
-    color:#4b5563;
-    line-height:1.3;
-    margin:0 0 8px;
-    display:-webkit-box;
-    -webkit-line-clamp:2;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
-}
-
-.product-bottom{
-    margin-top:auto;
-}
-
-.product-price{
-    color:var(--primary-color, {{ $primaryColor }});
-    font-size:13px;
-    font-weight:900;
-    margin-bottom:8px;
-}
-
-.product-cart-btn{
-    display:block;
-    width:100%;
-    text-align:center;
-    background:linear-gradient(135deg,var(--primary-color, {{ $primaryColor }}),var(--secondary-color, {{ $secondaryColor }}));
-    color:white;
-    padding:8px;
-    border-radius:12px;
-    font-size:11px;
-    font-weight:900;
-    text-decoration:none;
-    box-shadow:0 6px 14px rgba(15,23,42,.16);
-}
-
-.empty-product{
-    grid-column:1 / -1;
-    background:rgba(15,23,42,.04);
-    color:var(--primary-color, {{ $primaryColor }});
-    padding:14px;
-    border-radius:16px;
-    font-weight:900;
-}
-
-.merchant-near-card{
-    margin-bottom:14px;
-}
-
-.driver-map-card{
-    background:white;
-    border:1px solid rgba(15,23,42,.08);
-    border-radius:22px;
-    padding:12px;
-    margin-bottom:14px;
-    box-shadow:0 8px 18px rgba(15,23,42,.08);
-}
-
-.driver-map-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    margin-bottom:10px;
-}
-
-.driver-map-head h3{
-    margin:0;
-    color:var(--primary-color, {{ $primaryColor }});
-    font-size:17px;
-    font-weight:900;
-}
-
-.driver-map-head p{
-    margin:4px 0 0;
-    color:#6b7280;
-    font-size:12px;
-}
-
-.driver-count{
-    min-width:56px;
-    height:56px;
-    border-radius:18px;
-    background:linear-gradient(135deg,var(--primary-color, {{ $primaryColor }}),var(--secondary-color, {{ $secondaryColor }}));
-    color:white;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    box-shadow:0 8px 18px rgba(15,23,42,.16);
-}
-
-.driver-count span{
-    font-size:20px;
-    font-weight:900;
-    line-height:1;
-}
-
-.driver-count small{
-    font-size:10px;
-    font-weight:800;
-}
-
-#customerDriverMap{
-    width:100%;
-    height:230px;
-    border-radius:18px;
-    overflow:hidden;
-    background:#e5e7eb;
-    z-index:1;
-}
-
+.home-section-head{margin-bottom:12px}
+.section-title{font-size:20px;font-weight:900;color:var(--primary-color, {{ $primaryColor }});margin:0}
+.home-section-head p{margin:4px 0 0;color:#6b7280;font-size:12px}
+.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.product-card{background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:18px;overflow:hidden;box-shadow:0 8px 18px rgba(15,23,42,.08);display:flex;flex-direction:column;transition:.2s}
+.product-card:hover{transform:translateY(-2px)}
+.product-img{width:100%;height:92px;object-fit:cover;display:block;background:rgba(15,23,42,.05)}
+.product-empty{display:flex;align-items:center;justify-content:center;font-size:36px}
+.product-body{padding:9px;display:flex;flex-direction:column;flex:1}
+.product-body h3{font-size:13px;font-weight:900;color:var(--primary-color, {{ $primaryColor }});margin:0 0 4px;line-height:1.2}
+.product-merchant{font-size:11px;color:#6b7280;margin:0 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.merchant-card-link{text-decoration:none;color:inherit}
+.product-desc{font-size:11px;color:#4b5563;line-height:1.3;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.product-bottom{margin-top:auto}
+.product-price{color:var(--primary-color, {{ $primaryColor }});font-size:13px;font-weight:900;margin-bottom:8px}
+.product-cart-btn{display:block;width:100%;text-align:center;background:linear-gradient(135deg,var(--primary-color, {{ $primaryColor }}),var(--secondary-color, {{ $secondaryColor }}));color:white;padding:8px;border-radius:12px;font-size:11px;font-weight:900;text-decoration:none;box-shadow:0 6px 14px rgba(15,23,42,.16)}
+.empty-product{grid-column:1 / -1;background:rgba(15,23,42,.04);color:var(--primary-color, {{ $primaryColor }});padding:14px;border-radius:16px;font-weight:900}
+.merchant-near-card{margin-bottom:14px}
+.driver-map-card{background:white;border:1px solid rgba(15,23,42,.08);border-radius:22px;padding:12px;margin-bottom:14px;box-shadow:0 8px 18px rgba(15,23,42,.08)}
+.driver-map-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.driver-map-head h3{margin:0;color:var(--primary-color, {{ $primaryColor }});font-size:17px;font-weight:900}
+.driver-map-head p{margin:4px 0 0;color:#6b7280;font-size:12px}
+.driver-count{min-width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--primary-color, {{ $primaryColor }}),var(--secondary-color, {{ $secondaryColor }}));color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(15,23,42,.16)}
+.driver-count span{font-size:20px;font-weight:900;line-height:1}
+.driver-count small{font-size:10px;font-weight:800}
+#customerDriverMap{width:100%;height:230px;border-radius:18px;overflow:hidden;background:#e5e7eb;z-index:1}
 @media(min-width:768px){
-    .product-grid{
-        grid-template-columns:repeat(4,1fr);
-        gap:14px;
-    }
-
-    .product-img{
-        height:135px;
-    }
-
-    #customerDriverMap{
-        height:290px;
-    }
-
-    .section-title{
-        font-size:22px;
-    }
-
-    .driver-map-head h3{
-        font-size:20px;
-    }
+    .product-grid{grid-template-columns:repeat(4,1fr);gap:14px}
+    .product-img{height:135px}
+    #customerDriverMap{height:290px}
+    .section-title{font-size:22px}
+    .driver-map-head h3{font-size:20px}
 }
 </style>
 
@@ -336,13 +151,15 @@ let customerDriverMarkers = [];
 let customerLat = null;
 let customerLng = null;
 let firstCustomerMapLoad = true;
+let lastSentLat = null;
+let lastSentLng = null;
 
 function initCustomerDriverMap(lat, lng){
     customerLat = parseFloat(lat);
     customerLng = parseFloat(lng);
 
     if(!customerMap){
-        customerMap = L.map('customerDriverMap').setView([customerLat, customerLng], 13);
+        customerMap = L.map('customerDriverMap').setView([customerLat, customerLng], 15);
 
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -387,9 +204,50 @@ function initCustomerDriverMap(lat, lng){
 
     setTimeout(function(){
         customerMap.invalidateSize();
-    }, 500);
+    }, 400);
 
     loadActiveDrivers();
+}
+
+function updateMyLocation(){
+    if(!navigator.geolocation){
+        document.getElementById('driverMapInfo').innerText = 'GPS tidak didukung browser.';
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        function(pos){
+            let lat = pos.coords.latitude;
+            let lng = pos.coords.longitude;
+
+            initCustomerDriverMap(lat, lng);
+
+            fetch('/update-my-location', {
+                method:'POST',
+                headers:{
+                    'Content-Type':'application/json',
+                    'X-CSRF-TOKEN':'{{ csrf_token() }}'
+                },
+                body:JSON.stringify({
+                    latitude:lat,
+                    longitude:lng
+                })
+            });
+
+            lastSentLat = lat;
+            lastSentLng = lng;
+        },
+        function(error){
+            document.getElementById('driverMapInfo').innerText =
+                'GPS tidak aktif. Aktifkan izin lokasi browser.';
+            console.log('GPS error:', error);
+        },
+        {
+            enableHighAccuracy:true,
+            timeout:15000,
+            maximumAge:0
+        }
+    );
 }
 
 function createDriverIcon(vehicleType){
@@ -409,9 +267,7 @@ function createDriverIcon(vehicleType){
                 align-items:center;
                 justify-content:center;
                 font-size:17px;
-            ">
-                ${icon}
-            </div>
+            ">${icon}</div>
         `,
         iconSize:[36,36],
         iconAnchor:[18,18],
@@ -421,7 +277,6 @@ function createDriverIcon(vehicleType){
 
 function calculateDistanceKm(lat1, lng1, lat2, lng2){
     const R = 6371;
-
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
 
@@ -470,34 +325,11 @@ function loadActiveDrivers(){
                     ? parseFloat(driver.distance)
                     : calculateDistanceKm(customerLat, customerLng, dLat, dLng);
 
-                if(isNaN(distanceKm)){
+                if(isNaN(distanceKm) || distanceKm > DRIVER_RADIUS_KM){
                     return;
                 }
 
-                if(distanceKm > DRIVER_RADIUS_KM){
-                    return;
-                }
-
-                let markerLat = dLat;
-                let markerLng = dLng;
-
-                if(type === 'mobil'){
-                    markerLng = markerLng + 0.00018;
-                }
-
-                if(type === 'motor'){
-                    markerLng = markerLng - 0.00018;
-                }
-
-                if(
-                    Math.abs(markerLat - customerLat) < 0.00001 &&
-                    Math.abs(markerLng - customerLng) < 0.00001
-                ){
-                    markerLat = markerLat + 0.00015;
-                    markerLng = markerLng + 0.00015;
-                }
-
-                let marker = L.marker([markerLat, markerLng], {
+                let marker = L.marker([dLat, dLng], {
                     icon: createDriverIcon(type)
                 })
                 .addTo(customerMap)
@@ -506,26 +338,10 @@ function loadActiveDrivers(){
                         <div style="font-weight:900;color:${PRIMARY_COLOR};margin-bottom:6px;">
                             ${type === 'mobil' ? '🚗 Mobil Aktif' : '🛵 Motor Aktif'}
                         </div>
-
-                        <div>
-                            Status:
-                            <b style="color:#16a34a;">Online</b>
-                        </div>
-
-                        <div>
-                            Kendaraan:
-                            <b>${type}</b>
-                        </div>
-
-                        <div>
-                            Plat:
-                            <b>${driver.plate_number ?? '-'}</b>
-                        </div>
-
-                        <div>
-                            Jarak:
-                            <b>${distanceKm.toFixed(1)} km</b>
-                        </div>
+                        <div>Status: <b style="color:#16a34a;">Online</b></div>
+                        <div>Kendaraan: <b>${type}</b></div>
+                        <div>Plat: <b>${driver.plate_number ?? '-'}</b></div>
+                        <div>Jarak: <b>${distanceKm.toFixed(1)} km</b></div>
                     </div>
                 `);
 
@@ -534,7 +350,6 @@ function loadActiveDrivers(){
             });
 
             document.getElementById('driverCount').innerText = count;
-
             document.getElementById('driverMapInfo').innerText =
                 count > 0
                     ? count + ' driver aktif dalam radius ' + DRIVER_RADIUS_KM + ' km.'
@@ -547,38 +362,10 @@ function loadActiveDrivers(){
         });
 }
 
-function startCustomerMap(){
-    if(navigator.geolocation){
-        navigator.geolocation.getCurrentPosition(
-            function(pos){
-                initCustomerDriverMap(
-                    pos.coords.latitude,
-                    pos.coords.longitude
-                );
-            },
-            function(){
-                initCustomerDriverMap(-6.5345831, 111.0390329);
-
-                document.getElementById('driverMapInfo').innerText =
-                    'GPS tidak aktif. Menampilkan lokasi default.';
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    }else{
-        initCustomerDriverMap(-6.5345831, 111.0390329);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function(){
-    startCustomerMap();
-
-    setInterval(function(){
-        loadActiveDrivers();
-    }, 10000);
+    updateMyLocation();
+    setInterval(updateMyLocation, 10000);
+    setInterval(loadActiveDrivers, 10000);
 });
 </script>
 

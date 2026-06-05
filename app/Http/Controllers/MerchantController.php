@@ -8,34 +8,110 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Food;
 use App\Models\Driver;
+use App\Models\OrderRating;
+
 
 class MerchantController extends Controller
 {
     public function dashboard()
-    {
-        $restaurants = Restaurant::where('owner_id', Auth::id())
-            ->latest()
-            ->get();
+{
+    $restaurants = Restaurant::where('owner_id', Auth::id())
+        ->latest()
+        ->get();
 
-        if ($restaurants->count() == 0) {
-            return redirect('/apply-merchant');
-        }
-
-        $activeRestaurants = $restaurants->where('status', 'active');
-
-        if ($activeRestaurants->count() == 0) {
-            return view('merchant.pending', compact('restaurants'));
-        }
-
-        $orders = Order::with(['user', 'driver', 'items.food', 'restaurant'])
-            ->whereHas('restaurant', function ($q) {
-                $q->where('owner_id', Auth::id());
-            })
-            ->latest()
-            ->get();
-
-        return view('merchant.dashboard', compact('restaurants', 'orders'));
+    if ($restaurants->count() == 0) {
+        return redirect('/apply-merchant');
     }
+
+    $activeRestaurants = $restaurants->where('status', 'active');
+
+    if ($activeRestaurants->count() == 0) {
+        return view('merchant.pending', compact('restaurants'));
+    }
+
+    $restaurantIds = $activeRestaurants->pluck('id');
+
+    $orders = Order::with([
+            'user',
+            'driver.user',
+            'items.food',
+            'restaurant',
+        ])
+        ->whereIn('restaurant_id', $restaurantIds)
+        ->latest()
+        ->get();
+
+    $todayRevenue = 0;
+    $monthRevenue = 0;
+    $completedOrders = 0;
+    $bestMenu = '-';
+
+    $completedOrdersQuery = Order::whereIn('restaurant_id', $restaurantIds)
+        ->where('status', 'completed');
+
+    $todayRevenue = (clone $completedOrdersQuery)
+        ->whereDate('updated_at', today())
+        ->sum('food_original_total');
+
+    $monthRevenue = (clone $completedOrdersQuery)
+        ->whereMonth('updated_at', now()->month)
+        ->whereYear('updated_at', now()->year)
+        ->sum('food_original_total');
+
+    $completedOrders = (clone $completedOrdersQuery)->count();
+
+    $completedOrderIds = (clone $completedOrdersQuery)->pluck('id');
+
+    if ($completedOrderIds->count() > 0) {
+        $bestFood = \App\Models\OrderItem::selectRaw('food_id, SUM(qty) as total_qty')
+            ->whereIn('order_id', $completedOrderIds)
+            ->groupBy('food_id')
+            ->orderByDesc('total_qty')
+            ->with('food')
+            ->first();
+
+        $bestMenu = $bestFood?->food?->name ?? '-';
+    }
+
+
+    $merchantAverageRating = OrderRating::whereIn(
+        'restaurant_id',
+        $restaurantIds
+    )
+    ->whereNotNull('merchant_rating')
+    ->avg('merchant_rating');
+
+$merchantTotalReviews = OrderRating::whereIn(
+        'restaurant_id',
+        $restaurantIds
+    )
+    ->whereNotNull('merchant_rating')
+    ->count();
+
+$merchantLatestReviews = OrderRating::whereIn(
+        'restaurant_id',
+        $restaurantIds
+    )
+    ->whereNotNull('merchant_rating')
+    ->latest()
+    ->limit(5)
+    ->get();
+
+
+    return view('merchant.dashboard', compact(
+        'restaurants',
+        'orders',
+        'todayRevenue',
+        'monthRevenue',
+        'completedOrders',
+        'bestMenu',
+    'merchantAverageRating',
+    'merchantTotalReviews',
+    'merchantLatestReviews'
+    ));
+}
+
+
 public function foods()
 {
     $restaurants = \App\Models\Restaurant::with('foods')
@@ -261,5 +337,56 @@ public function notifCount()
     return response()->json([
         'count' => $count
     ]);
+}
+
+public function finance(Request $request)
+{
+    $restaurants = Restaurant::where('owner_id', Auth::id())
+        ->where('status', 'active')
+        ->get();
+
+    if ($restaurants->count() == 0) {
+        return redirect('/merchant');
+    }
+
+    $restaurantIds = $restaurants->pluck('id');
+
+    $search = $request->search;
+
+    $orders = Order::with(['user', 'items.food', 'restaurant'])
+        ->whereIn('restaurant_id', $restaurantIds)
+        ->where('status', 'completed')
+        ->when($search, function ($q) use ($search) {
+            $q->where(function ($query) use ($search) {
+                $query->where('order_number', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($u) use ($search) {
+                        $u->where('name', 'like', "%{$search}%");
+                    });
+            });
+        })
+        ->latest()
+        ->get();
+
+    $todayRevenue = Order::whereIn('restaurant_id', $restaurantIds)
+        ->where('status', 'completed')
+        ->whereDate('updated_at', today())
+        ->sum('food_original_total');
+
+    $monthRevenue = Order::whereIn('restaurant_id', $restaurantIds)
+        ->where('status', 'completed')
+        ->whereMonth('updated_at', now()->month)
+        ->whereYear('updated_at', now()->year)
+        ->sum('food_original_total');
+
+    $completedOrders = Order::whereIn('restaurant_id', $restaurantIds)
+        ->where('status', 'completed')
+        ->count();
+
+    return view('merchant.finance', compact(
+        'orders',
+        'todayRevenue',
+        'monthRevenue',
+        'completedOrders'
+    ));
 }
 }

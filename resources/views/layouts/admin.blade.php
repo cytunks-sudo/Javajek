@@ -21,74 +21,36 @@
         : asset('images/logo-javajek.png');
 
     $appName = $appSetting->app_name ?? 'JavaJek';
-$pendingDrivers = \App\Models\DriverApplication::where('status','pending')->count();
 
-$pendingMerchants = \App\Models\Restaurant::where('status','pending')->count();
+    $pendingDrivers = \App\Models\DriverApplication::where('status','pending')->count();
+    $pendingMerchants = \App\Models\Restaurant::where('status','pending')->count();
 
-$pendingOrders = \App\Models\Order::whereIn('status',[
-    'searching_driver',
-    'waiting_response'
-])->count();
-
-    @endphp
+    $pendingOrders = \App\Models\Order::whereIn('status',[
+        'searching_driver',
+        'waiting_response'
+    ])->count();
+@endphp
 
 <style>
 :root{
     --primary-color: {{ $primaryColor }};
     --secondary-color: {{ $secondaryColor }};
     --text-color: {{ $primaryColor }};
-
     --soft-bg: {{ $secondaryColor }}22;
     --soft-bg-2: {{ $secondaryColor }}33;
-
-    --white: #ffffff;
-    --dark: #1f2937;
+    --white:#ffffff;
+    --dark:#1f2937;
 }
 
-
-*{
-    box-sizing:border-box;
-}
-
-.menu-badge-gray{
-    background:#e2e8f0;
-    color:#475569;
-    padding:4px 10px;
-    border-radius:999px;
-    font-size:11px;
-    font-weight:700;
-}
+*{box-sizing:border-box;}
 
 body{
     margin:0;
     font-family:'Segoe UI',Arial,sans-serif;
-    background:
-        linear-gradient(
-            135deg,
-            var(--soft-bg),
-            var(--soft-bg-2),
-            #ffffff
-        );
+    background:linear-gradient(135deg,var(--soft-bg),var(--soft-bg-2),#ffffff);
     color:var(--dark);
 }
-.menu-notif{
-    min-width:22px;
-    height:22px;
 
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background:#ef4444;
-    color:white;
-
-    font-size:11px;
-    font-weight:900;
-
-    border-radius:999px;
-
-    box-shadow:0 4px 10px rgba(239,68,68,.4);
-}
 .wrapper{
     display:flex;
     min-height:100vh;
@@ -168,23 +130,6 @@ body{
     transition:.2s;
 }
 
-.menu-history{
-    min-width:24px;
-    height:24px;
-    padding:0 8px;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    border-radius:999px;
-
-    background:#64748b;
-    color:white;
-
-    font-size:12px;
-    font-weight:800;
-}
 .sidebar a:hover{
     background:rgba(255,255,255,.22);
     transform:translateX(4px);
@@ -211,6 +156,29 @@ body{
     border-radius:999px;
 }
 
+.menu-badge-gray{
+    background:#e2e8f0;
+    color:#475569;
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:700;
+}
+
+.menu-notif{
+    min-width:22px;
+    height:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#ef4444;
+    color:white;
+    font-size:11px;
+    font-weight:900;
+    border-radius:999px;
+    box-shadow:0 4px 10px rgba(239,68,68,.4);
+}
+
 .logout-btn{
     width:100%;
     background:#dc2626;
@@ -230,24 +198,30 @@ body{
     padding:28px;
 }
 
-.alert-success{
-    background:#dcfce7;
-    color:#166534;
-    border-left:6px solid #16a34a;
-    padding:14px 16px;
-    border-radius:16px;
-    margin-bottom:18px;
+.admin-toast{
+    position:fixed;
+    top:28px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:999999;
+    min-width:360px;
+    max-width:560px;
+    padding:20px 28px;
+    border-radius:22px;
+    color:white;
+    font-size:18px;
     font-weight:900;
+    text-align:center;
+    box-shadow:0 22px 55px rgba(15,23,42,.25);
+    animation:adminToastDrop .45s ease;
 }
 
-.alert-error{
-    background:#fee2e2;
-    color:#991b1b;
-    border-left:6px solid #dc2626;
-    padding:14px 16px;
-    border-radius:16px;
-    margin-bottom:18px;
-    font-weight:900;
+.admin-toast.success{background:#16a34a;}
+.admin-toast.error{background:#dc2626;}
+
+@keyframes adminToastDrop{
+    from{transform:translate(-50%,-90px);opacity:0;}
+    to{transform:translate(-50%,0);opacity:1;}
 }
 
 .card-box{
@@ -373,6 +347,14 @@ table td{
     .card-box{
         overflow-x:auto;
     }
+
+    .admin-toast{
+        min-width:auto;
+        width:calc(100% - 32px);
+        max-width:calc(100% - 32px);
+        font-size:15px;
+        padding:16px 18px;
+    }
 }
 </style>
 </head>
@@ -394,42 +376,35 @@ table td{
             </div>
         </div>
 
-       <div class="menu-title">Utama</div>
+        <div class="menu-title">Utama</div>
 
-<a href="/admin"
-   class="{{ request()->is('admin') ? 'active-menu' : '' }}">
-    <span>📊 Dashboard</span>
-</a>
+        <a href="/admin" class="{{ request()->is('admin') ? 'active-menu' : '' }}">
+            <span>📊 Dashboard</span>
+        </a>
 
-<a href="/admin/orders"
-   class="{{ request()->is('admin/orders') ? 'active-menu' : '' }}">
-    <span>📦 Order Aktif</span>
+        <a href="/admin/finance" class="{{ request()->is('admin/finance*') ? 'active-menu' : '' }}">
+            <span>💰 Keuangan</span>
+        </a>
 
-    @if($pendingOrders > 0)
-        <span class="menu-notif">
-            {{ $pendingOrders }}
-        </span>
-    @else
-        <span class="menu-badge">
-            Live
-        </span>
-    @endif
-</a>
+        <a href="/admin/orders" class="{{ request()->is('admin/orders') ? 'active-menu' : '' }}">
+            <span>📦 Order Aktif</span>
 
-<a href="/admin/orders/history"
-   class="{{ request()->is('admin/orders/history') ? 'active-menu' : '' }}">
-    <span>📜 History Order</span>
+            @if($pendingOrders > 0)
+                <span class="menu-notif">{{ $pendingOrders }}</span>
+            @else
+                <span class="menu-badge">Live</span>
+            @endif
+        </a>
 
-    <span class="menu-badge-gray">
-        Arsip
-    </span>
-</a>
-
+        <a href="/admin/orders/history" class="{{ request()->is('admin/orders/history') ? 'active-menu' : '' }}">
+            <span>📜 History Order</span>
+            <span class="menu-badge-gray">Arsip</span>
+        </a>
 
         <div class="menu-title">Pengaturan</div>
 
         <a href="/admin/app-appearance" class="{{ request()->is('admin/app-appearance*') ? 'active-menu' : '' }}">
-            <span>🎨 Tampilan Aplikasi</span>
+            <span>⚙️ Pengaturan Aplikasi</span>
         </a>
 
         <a href="/admin/delivery-setting" class="{{ request()->is('admin/delivery-setting*') ? 'active-menu' : '' }}">
@@ -438,6 +413,17 @@ table td{
 
         <a href="/admin/ride-setting" class="{{ request()->is('admin/ride-setting*') ? 'active-menu' : '' }}">
             <span>🏍️ Tarif Ride & Car</span>
+        </a>
+
+        <div class="menu-title">Voucher</div>
+
+        <a href="/admin/vouchers" class="{{ request()->is('admin/vouchers*') ? 'active-menu' : '' }}">
+            <span>🎁 Voucher Promo</span>
+        </a>
+
+        <a href="/admin/voucher-usages" class="{{ request()->is('admin/voucher-usages*') ? 'active-menu' : '' }}">
+            <span>📊 Voucher Usage</span>
+            <span class="menu-badge-gray">Report</span>
         </a>
 
         <div class="menu-title">Merchant</div>
@@ -454,9 +440,7 @@ table td{
             <span>📝 Pengajuan Merchant</span>
 
             @if($pendingMerchants > 0)
-            <span class="menu-notif">
-            {{ $pendingMerchants }}
-            </span>
+                <span class="menu-notif">{{ $pendingMerchants }}</span>
             @endif
         </a>
 
@@ -470,14 +454,16 @@ table td{
             <span>🛵 Driver Aktif</span>
         </a>
 
+        <a href="/admin/driver-wallet" class="{{ request()->is('admin/driver-wallet*') ? 'active-menu' : '' }}">
+            <span>💰 Saldo Driver</span>
+        </a>
+
         <a href="/admin/driver-applications" class="{{ request()->is('admin/driver-applications*') ? 'active-menu' : '' }}">
             <span>📝 Pengajuan Driver</span>
 
-@if($pendingDrivers > 0)
-    <span class="menu-notif">
-        {{ $pendingDrivers }}
-    </span>
-@endif
+            @if($pendingDrivers > 0)
+                <span class="menu-notif">{{ $pendingDrivers }}</span>
+            @endif
         </a>
 
         <a href="/admin/drivers/stopped" class="{{ request()->is('admin/drivers/stopped*') ? 'active-menu' : '' }}">
@@ -487,16 +473,16 @@ table td{
         <a href="/admin/drivers/penalty" class="{{ request()->is('admin/drivers/penalty*') ? 'active-menu' : '' }}">
             <span>⚠️ Driver Penalti</span>
         </a>
-        
+
         <div class="menu-title">User</div>
 
         <a href="/admin/users" class="{{ request()->is('admin/users*') ? 'active-menu' : '' }}">
-            <span>👤 Data  Pengguna
-            </span>
+            <span>👤 Data Pengguna</span>
         </a>
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf
+
             <button type="submit" class="logout-btn">
                 Logout
             </button>
@@ -507,11 +493,15 @@ table td{
     <main class="content">
 
         @if(session('success'))
-            <div class="alert-success">{{ session('success') }}</div>
+            <div id="toastSuccess" class="admin-toast success">
+                ✅ {{ session('success') }}
+            </div>
         @endif
 
         @if(session('error'))
-            <div class="alert-error">{{ session('error') }}</div>
+            <div id="toastError" class="admin-toast error">
+                ❌ {{ session('error') }}
+            </div>
         @endif
 
         @yield('content')
@@ -519,6 +509,21 @@ table td{
     </main>
 
 </div>
+
+<script>
+setTimeout(function(){
+    let success = document.getElementById('toastSuccess');
+    let error = document.getElementById('toastError');
+
+    if(success){
+        success.remove();
+    }
+
+    if(error){
+        error.remove();
+    }
+},3000);
+</script>
 
 </body>
 </html>

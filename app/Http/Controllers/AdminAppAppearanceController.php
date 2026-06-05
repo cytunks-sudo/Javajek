@@ -23,6 +23,29 @@ class AdminAppAppearanceController extends Controller
 
     public function update(Request $request)
     {
+        $request->validate([
+            'app_name' => 'nullable|string|max:255',
+            'primary_color' => 'nullable|string|max:20',
+            'secondary_color' => 'nullable|string|max:20',
+
+            'customer_driver_radius' => 'nullable|numeric|min:0',
+            'ride_search_radius' => 'nullable|numeric|min:0',
+            'merchant_radius' => 'nullable|numeric|min:0',
+
+            'driver_min_balance' => 'nullable|numeric|min:0',
+            'food_price_markup_percent' => 'nullable|numeric|min:0',
+            'food_driver_commission_percent' => 'nullable|numeric|min:0',
+            'ride_driver_commission_percent' => 'nullable|numeric|min:0',
+            'car_driver_commission_percent' => 'nullable|numeric|min:0',
+
+            'login_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'customer_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'driver_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'merchant_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'driver_map_icon' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'home_banner' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ]);
+
         $setting = AppSetting::first();
 
         if (!$setting) {
@@ -61,6 +84,26 @@ class AdminAppAppearanceController extends Controller
             $data['merchant_radius'] = $request->merchant_radius ?? 20;
         }
 
+        if (Schema::hasColumn('app_settings', 'driver_min_balance')) {
+            $data['driver_min_balance'] = $request->driver_min_balance ?? 0;
+        }
+
+        if (Schema::hasColumn('app_settings', 'food_price_markup_percent')) {
+            $data['food_price_markup_percent'] = $request->food_price_markup_percent ?? 0;
+        }
+
+        if (Schema::hasColumn('app_settings', 'food_driver_commission_percent')) {
+            $data['food_driver_commission_percent'] = $request->food_driver_commission_percent ?? 0;
+        }
+
+        if (Schema::hasColumn('app_settings', 'ride_driver_commission_percent')) {
+            $data['ride_driver_commission_percent'] = $request->ride_driver_commission_percent ?? 0;
+        }
+
+        if (Schema::hasColumn('app_settings', 'car_driver_commission_percent')) {
+            $data['car_driver_commission_percent'] = $request->car_driver_commission_percent ?? 0;
+        }
+
         foreach ([
             'login_logo',
             'customer_logo',
@@ -69,7 +112,6 @@ class AdminAppAppearanceController extends Controller
             'driver_map_icon',
             'home_banner',
         ] as $field) {
-
             if (
                 Schema::hasColumn('app_settings', $field) &&
                 $request->hasFile($field)

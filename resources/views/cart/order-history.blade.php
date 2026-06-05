@@ -29,51 +29,57 @@
                 </thead>
 
                 <tbody>
-                @forelse($orders as $order)
-                    <tr>
-                        <td>
-                            <b>{{ $order->order_number ?? '#'.$order->id }}</b>
-                        </td>
+                    @forelse($orders as $order)
+                        <tr>
+                            <td>
+                                <b>{{ $order->order_number ?? $order->order_code ?? '#'.$order->id }}</b>
+                            </td>
 
-                        <td>
-                            <span class="type-badge">
-                                @if($order->order_type == 'ojek')
-                                    🏍️ Ojek
-                                @elseif($order->order_type == 'car')
-                                    🚗 J-Car
-                                @else
-                                    🍔 Food
-                                @endif
-                            </span>
-                        </td>
+                            <td>
+                                <span class="type-badge">
+                                    @if($order->order_type == 'ojek')
+                                        🏍️ Ojek
+                                    @elseif($order->order_type == 'car')
+                                        🚗 J-Car
+                                    @else
+                                        🍔 Food
+                                    @endif
+                                </span>
+                            </td>
 
-                        <td>
-                            <span class="status-badge {{ $order->status }}">
-                                {{ strtoupper(str_replace('_',' ', $order->status)) }}
-                            </span>
-                        </td>
+                            <td>
+                                <span class="status-badge {{ $order->status }}">
+                                    {{ strtoupper(str_replace('_',' ', $order->status)) }}
+                                </span>
+                            </td>
 
-                        <td>
-                            <b>Rp {{ number_format($order->total) }}</b>
-                        </td>
+                            <td>
+                                @php
+    $displayTotal = $order->grand_total > 0
+        ? $order->grand_total
+        : $order->total;
+@endphp
 
-                        <td>
-                            <button type="button"
-                                    class="detail-btn"
-                                    onclick="openHistoryDetail('historyDetail{{ $order->id }}')">
-                                Detail
-                            </button>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5">
-                            <div class="empty-history">
-                                Belum ada riwayat pesanan.
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
+<b>Rp {{ number_format($displayTotal) }}</b>
+                            </td>
+
+                            <td>
+                                <button type="button"
+                                        class="detail-btn"
+                                        onclick="openHistoryDetail('historyDetail{{ $order->id }}')">
+                                    Detail
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-history">
+                                    Belum ada riwayat pesanan.
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -86,16 +92,69 @@
                 <div class="history-modal-head">
                     <div>
                         <h3>Detail Pesanan</h3>
-                        <p>{{ $order->order_number ?? '#'.$order->id }}</p>
+                        <p>{{ $order->order_number ?? $order->order_code ?? '#'.$order->id }}</p>
                     </div>
 
-                    <button type="button"
-                            onclick="closeHistoryDetail('historyDetail{{ $order->id }}')">
+                    <button type="button" onclick="closeHistoryDetail('historyDetail{{ $order->id }}')">
                         ×
                     </button>
                 </div>
 
                 <div class="history-modal-body">
+
+                    @if($order->status === 'completed' && !$order->rating)
+                        <form method="POST" action="{{ route('orders.rating', $order->id) }}" class="rating-box">
+                            @csrf
+
+                            <h4>Beri Rating ⭐</h4>
+
+                            <label>Rating Driver</label>
+                            <select name="driver_rating" required>
+                                <option value="">Pilih rating</option>
+                                <option value="5">⭐⭐⭐⭐⭐ Sangat Baik</option>
+                                <option value="4">⭐⭐⭐⭐ Baik</option>
+                                <option value="3">⭐⭐⭐ Cukup</option>
+                                <option value="2">⭐⭐ Kurang</option>
+                                <option value="1">⭐ Buruk</option>
+                            </select>
+
+                            <textarea name="driver_review" placeholder="Ulasan untuk driver"></textarea>
+
+                            @if($order->restaurant_id)
+                                <label>Rating Merchant</label>
+                                <select name="merchant_rating" required>
+                                    <option value="">Pilih rating</option>
+                                    <option value="5">⭐⭐⭐⭐⭐ Sangat Baik</option>
+                                    <option value="4">⭐⭐⭐⭐ Baik</option>
+                                    <option value="3">⭐⭐⭐ Cukup</option>
+                                    <option value="2">⭐⭐ Kurang</option>
+                                    <option value="1">⭐ Buruk</option>
+                                </select>
+
+                                <textarea name="merchant_review" placeholder="Ulasan untuk merchant"></textarea>
+                            @endif
+
+                            <button type="submit" class="btn-rating">
+                                Kirim Rating
+                            </button>
+                        </form>
+                    @elseif($order->rating)
+                        <div class="rating-done-box">
+                            <b>Rating sudah diberikan</b>
+
+                            <div>
+                                Driver:
+                                <span>⭐ {{ $order->rating->driver_rating ?? '-' }}</span>
+                            </div>
+
+                            @if($order->restaurant_id)
+                                <div>
+                                    Merchant:
+                                    <span>⭐ {{ $order->rating->merchant_rating ?? '-' }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
 
                     <div class="detail-row">
                         <span>Jenis</span>
@@ -117,22 +176,76 @@
 
                     <div class="detail-row">
                         <span>Total</span>
-                        <b>Rp {{ number_format($order->total) }}</b>
+                        @php
+    $displayTotal = $order->grand_total > 0
+        ? $order->grand_total
+        : $order->total;
+@endphp
+
+<b>Rp {{ number_format($displayTotal) }}</b>
                     </div>
 
                     <hr>
 
                     @if($order->order_type == 'ojek' || $order->order_type == 'car')
 
-                        <div class="address-box">
-                            <span>📍 Jemput</span>
-                            <p>{{ $order->pickup_address ?? '-' }}</p>
-                        </div>
+    <div class="address-box">
+        <span>📍 Jemput</span>
+        <p>{{ $order->pickup_address ?? '-' }}</p>
+    </div>
 
-                        <div class="address-box">
-                            <span>🏁 Tujuan</span>
-                            <p>{{ $order->destination_address ?? '-' }}</p>
-                        </div>
+    <div class="address-box">
+        <span>🏁 Tujuan</span>
+        <p>{{ $order->destination_address ?? '-' }}</p>
+    </div>
+
+    <hr>
+
+    <h4>Rincian Perjalanan</h4>
+
+@php
+    $jarak = $order->distance_km ?? 0;
+    $totalRide = $order->grand_total > 0
+        ? $order->grand_total
+        : $order->total;
+@endphp
+
+
+    <div class="nota-table-wrap">
+        <table class="nota-table">
+    <thead>
+        <tr>
+            <th>Jemput → Tujuan</th>
+            <th>Jarak</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        <tr>
+            <td>
+                {{ Str::limit($order->pickup_address ?? '-',25) }}
+                →
+                {{ Str::limit($order->destination_address ?? '-',25) }}
+            </td>
+
+            <td>
+                {{ number_format($jarak,1) }} km
+            </td>
+
+            <td>
+                Rp {{ number_format($totalRide) }}
+            </td>
+        </tr>
+
+        <tr class="nota-total">
+            <td colspan="2">Total Bayar</td>
+            <td>Rp {{ number_format($totalRide) }}</td>
+        </tr>
+    </tbody>
+</table>
+    </div>
+
 
                     @else
 
@@ -148,21 +261,69 @@
 
                         <hr>
 
-                        <h4>Item Pesanan</h4>
+                        <h4>Rincian Nota</h4>
 
-                        @forelse($order->items as $item)
-                            <div class="nota-item">
-                                <span>{{ $item->food->name ?? '-' }} x {{ $item->qty }}</span>
-                                <b>Rp {{ number_format($item->price * $item->qty) }}</b>
-                            </div>
-                        @empty
-                            <p class="empty-mini">Tidak ada item.</p>
-                        @endforelse
+<div class="nota-table-wrap">
+    <table class="nota-table">
+        <thead>
+            <tr>
+                <th>Makan</th>
+                <th>Qty</th>
+                <th>Harga</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @php
+                $subtotalMakanan = 0;
+            @endphp
+
+            @forelse($order->items ?? [] as $item)
+                @php
+                    $qty = $item->qty ?? 0;
+                    $price = $item->price ?? 0;
+                    $lineTotal = $price * $qty;
+                    $subtotalMakanan += $lineTotal;
+                @endphp
+
+                <tr>
+                    <td>{{ $item->food->name ?? '-' }}</td>
+                    <td>{{ $qty }}</td>
+                    <td>Rp {{ number_format($price) }}</td>
+                    <td>Rp {{ number_format($lineTotal) }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4" class="empty-mini">Tidak ada item.</td>
+                </tr>
+            @endforelse
+
+            @php
+                $ongkir = $order->delivery_fee ?? 0;
+                $jarak = $order->distance_km ?? 0;
+                $grandTotalNota = $subtotalMakanan + $ongkir;
+            @endphp
+
+            <tr class="nota-ongkir">
+                <td>Ongkir</td>
+                <td>{{ number_format($jarak, 1) }} km</td>
+                <td>Rp {{ number_format($ongkir) }}</td>
+                <td>Rp {{ number_format($ongkir) }}</td>
+            </tr>
+
+            <tr class="nota-total">
+                <td colspan="3">Total Bayar</td>
+                <td>Rp {{ number_format($grandTotalNota) }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
 
                     @endif
 
                 </div>
-
             </div>
         </div>
     @endforeach
@@ -255,7 +416,53 @@
     font-weight:900;
     white-space:nowrap;
 }
+.nota-table-wrap{
+    overflow-x:auto;
+    margin-top:10px;
+}
 
+.nota-table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:16px;
+    overflow:hidden;
+}
+
+.nota-table th{
+    background:rgba(15,23,42,.05);
+    color:var(--primary);
+    font-size:12px;
+    font-weight:900;
+    padding:10px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+.nota-table td{
+    padding:11px 10px;
+    border-bottom:1px solid rgba(15,23,42,.06);
+    color:#111827;
+    font-size:13px;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.nota-table td:first-child{
+    white-space:normal;
+}
+
+.nota-ongkir td{
+    background:rgba(15,23,42,.03);
+    color:#111827;
+}
+
+.nota-total td{
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    color:white;
+    font-weight:900;
+    border-bottom:none;
+}
 .status-badge{
     display:inline-block;
     padding:8px 12px;
@@ -302,28 +509,40 @@
     inset:0;
     background:rgba(15,23,42,.58);
     z-index:9999;
-    padding:24px;
-    overflow-y:auto;
+    padding:16px;
+    overflow:hidden;
 }
 
 .history-modal-box{
     background:white;
     width:100%;
     max-width:560px;
-    margin:60px auto;
+    height:calc(100vh - 32px);
+    margin:0 auto;
     border-radius:28px;
-    padding:20px;
+    padding:0;
     box-shadow:0 20px 45px rgba(15,23,42,.28);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
 }
 
 .history-modal-head{
+    flex-shrink:0;
     display:flex;
     justify-content:space-between;
     align-items:center;
     gap:14px;
     border-bottom:1px solid rgba(15,23,42,.08);
-    padding-bottom:14px;
-    margin-bottom:14px;
+    padding:16px 18px;
+    background:white;
+    z-index:2;
+}
+
+.history-modal-body{
+    flex:1;
+    overflow-y:auto;
+    padding:16px 18px 24px;
 }
 
 .history-modal-head h3{
@@ -350,6 +569,70 @@
     font-size:24px;
     cursor:pointer;
     font-weight:900;
+}
+
+.rating-box{
+    margin-bottom:16px;
+    padding:14px;
+    border-radius:18px;
+    background:rgba(15,23,42,.03);
+    border:1px solid rgba(15,23,42,.08);
+}
+
+.rating-box h4{
+    margin:0 0 12px;
+    color:var(--primary);
+    font-size:18px;
+    font-weight:900;
+}
+
+.rating-box label{
+    display:block;
+    margin-top:10px;
+    margin-bottom:6px;
+    color:#111827;
+    font-weight:800;
+}
+
+.rating-box select,
+.rating-box textarea{
+    width:100%;
+    padding:12px;
+    border-radius:14px;
+    border:1px solid rgba(15,23,42,.18);
+    margin-bottom:10px;
+    outline:none;
+    font-weight:700;
+}
+
+.rating-box textarea{
+    min-height:64px;
+}
+
+.btn-rating{
+    width:100%;
+    padding:13px;
+    border:none;
+    border-radius:16px;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    color:white;
+    font-weight:900;
+    cursor:pointer;
+    margin-top:8px;
+}
+
+.rating-done-box{
+    margin-bottom:16px;
+    padding:14px;
+    border-radius:18px;
+    background:#dcfce7;
+    color:#166534;
+    font-weight:800;
+}
+
+.rating-done-box b{
+    display:block;
+    margin-bottom:8px;
 }
 
 .detail-row{
@@ -451,9 +734,10 @@
     }
 
     .history-modal-box{
-        margin:30px auto;
+        margin:24px auto;
         border-radius:24px;
         padding:16px;
+        max-height:90vh;
     }
 }
 </style>

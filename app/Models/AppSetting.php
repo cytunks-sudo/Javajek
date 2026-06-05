@@ -20,5 +20,19 @@ class AppSetting extends Model
     'merchant_logo',
     'driver_map_icon',
     'home_banner',
+    'driver_min_balance',
+'food_price_markup_percent',
+'food_driver_commission_percent',
+'ride_driver_commission_percent',
+'car_driver_commission_percent',
 ];
+
+protected $casts = [
+    'driver_min_balance' => 'decimal:2',
+    'food_price_markup_percent' => 'decimal:2',
+    'food_driver_commission_percent' => 'decimal:2',
+    'ride_driver_commission_percent' => 'decimal:2',
+    'car_driver_commission_percent' => 'decimal:2',
+];
+
 }

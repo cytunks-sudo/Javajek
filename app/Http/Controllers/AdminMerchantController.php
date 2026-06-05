@@ -6,12 +6,15 @@ use App\Models\Restaurant;
 
 class AdminMerchantController extends Controller
 {
-    public function index()
-    {
-        $restaurants = Restaurant::latest()->get();
+   public function index()
+{
+    $restaurants = Restaurant::with('owner')
+        ->whereNotIn('status', ['active','rejected'])
+        ->latest()
+        ->get();
 
-        return view('admin.merchant-applications', compact('restaurants'));
-    }
+    return view('admin.merchant-applications', compact('restaurants'));
+}
 
     public function approve($id)
     {

@@ -8,6 +8,18 @@
 
 <div class="driver-dashboard">
 
+   @if(session('success'))
+<div id="toastSuccess" class="driver-toast success">
+    ✅ {{ session('success') }}
+</div>
+@endif
+
+@if(session('error'))
+<div id="toastError" class="driver-toast error">
+    ❌ {{ session('error') }}
+</div>
+@endif
+
     <div class="driver-topbar">
         <div>
             <h2>JavaJek Driver</h2>
@@ -39,6 +51,14 @@
             Riwayat Order
         </a>
 
+        <a href="/driver/wallet-history" class="driver-menu-item">
+    <div class="driver-menu-icon">💰</div>
+    Riwayat Saldo
+</a>
+<a href="/driver/income" class="driver-menu-item">
+    <div class="driver-menu-icon">💵</div>
+    Pendapatan Driver
+</a>
         <a href="/driver/settings" class="driver-menu-item">
             <div class="driver-menu-icon">⚙️</div>
             Setting Driver
@@ -57,7 +77,29 @@
         </form>
 
     </div>
+    @if($walletWarning)
 
+<div class="wallet-warning-card">
+
+    <div class="wallet-warning-icon">
+        ⚠️
+    </div>
+
+    <div>
+
+        <div class="wallet-warning-title">
+            Saldo Driver Bermasalah
+        </div>
+
+        <div class="wallet-warning-text">
+            {{ $walletWarning }}
+        </div>
+
+    </div>
+
+</div>
+
+@endif
     <div class="driver-summary-grid">
         <div class="summary-card">
             <span>Saldo Driver</span>
@@ -75,6 +117,66 @@
         </div>
     </div>
 
+<div class="driver-income-grid">
+
+    <div class="income-card">
+        <small>💰 Pendapatan Hari Ini</small>
+        <h3>Rp {{ number_format($driverIncomeToday ?? 0) }}</h3>
+    </div>
+
+    <div class="income-card">
+        <small>📈 Pendapatan Bulan Ini</small>
+        <h3>Rp {{ number_format($driverIncomeMonth ?? 0) }}</h3>
+    </div>
+
+    <div class="income-card">
+        <small>📦 Order Selesai</small>
+        <h3>{{ $driverCompletedOrders ?? 0 }}</h3>
+    </div>
+
+    <div class="income-card danger">
+        <small>💸 Komisi Admin</small>
+        <h3>Rp {{ number_format($driverCommissionTotal ?? 0) }}</h3>
+    </div>
+
+</div>
+
+<div class="rating-map-grid">
+
+    <div class="income-card rating-card">
+        <small>⭐ Rating Driver</small>
+
+        <h3>{{ number_format($driverAverageRating ?? 0, 1) }} / 5</h3>
+
+        <p class="rating-mini">
+            {{ $driverTotalReviews ?? 0 }} ulasan
+        </p>
+
+        <div class="mini-review-list">
+            @forelse($driverLatestReviews as $review)
+                <div class="mini-review-item">
+                    <div class="mini-review-stars">
+                        @for($i = 1; $i <= 5; $i++)
+                            @if($i <= $review->driver_rating)
+                                ⭐
+                            @else
+                                ☆
+                            @endif
+                        @endfor
+                    </div>
+
+                    <div class="mini-review-text">
+                        {{ $review->driver_review ?: 'Tidak ada ulasan.' }}
+                    </div>
+                </div>
+            @empty
+                <div class="mini-review-empty">
+                    Belum ada ulasan.
+                </div>
+            @endforelse
+        </div>
+    </div>
+
     <div class="food-card map-card">
         <div class="section-head">
             <div>
@@ -88,7 +190,9 @@
         <div id="driverMap"></div>
     </div>
 
-    <div class="food-card">
+</div>
+
+     <div class="food-card">
         <h3 class="order-title">Order Aktif</h3>
 
         @forelse($orders as $order)
@@ -104,7 +208,7 @@
 
                 $grandTotal = ($order->grand_total ?? 0) > 0
                     ? $order->grand_total
-                    : ($order->total + $deliveryFee);
+                    : ($order->total ?? 0);
             @endphp
 
             @if(!$isFinished)
@@ -347,6 +451,62 @@
                             </div>
 
                             <p><b>Total:</b> Rp {{ number_format($grandTotal) }}</p>
+                            @php
+    $foodOriginalTotal = 0;
+    $foodSellingTotal = 0;
+
+    foreach($order->items as $item){
+        $qty = $item->qty ?? 1;
+        $originalPrice = $item->food->price ?? $item->price;
+        $sellingPrice = $item->price ?? $originalPrice;
+
+        $foodOriginalTotal += $originalPrice * $qty;
+        $foodSellingTotal += $sellingPrice * $qty;
+    }
+
+    $foodMarkupAmount = max(0, $foodSellingTotal - $foodOriginalTotal);
+
+    $appSetting = \App\Models\AppSetting::first();
+    $deliveryCommissionPercent = $appSetting->food_driver_commission_percent ?? 0;
+
+    $deliveryCommissionAmount = round(($order->delivery_fee ?? 0) * ($deliveryCommissionPercent / 100));
+
+    $driverCutTotal = $foodMarkupAmount + $deliveryCommissionAmount;
+@endphp
+
+<div class="driver-commission-box">
+    <h4>💰 Rincian Komisi Admin</h4>
+
+    <div class="commission-row">
+        <span>Total customer bayar</span>
+        <b>Rp {{ number_format($grandTotal) }}</b>
+    </div>
+
+    <div class="commission-row">
+        <span>Harga asli merchant</span>
+        <b>Rp {{ number_format($foodOriginalTotal) }}</b>
+    </div>
+
+    <div class="commission-row">
+        <span>Markup food</span>
+        <b>Rp {{ number_format($foodMarkupAmount) }}</b>
+    </div>
+
+    <div class="commission-row">
+        <span>Ongkir</span>
+        <b>Rp {{ number_format($order->delivery_fee ?? 0) }}</b>
+    </div>
+
+    <div class="commission-row">
+        <span>Komisi ongkir {{ $deliveryCommissionPercent }}%</span>
+        <b>Rp {{ number_format($deliveryCommissionAmount) }}</b>
+    </div>
+
+    <div class="commission-row total">
+        <span>Total potong saldo driver</span>
+        <b>Rp {{ number_format($driverCutTotal) }}</b>
+    </div>
+</div>
 
                             <hr>
 
@@ -363,7 +523,7 @@
                         @endif
 
                         @if($hasRouteMap)
-    <div class="modal-route-box">
+      <div class="modal-route-box">
         <div class="modal-route-title">
             🗺️ Peta Rute
         </div>
@@ -376,9 +536,72 @@
         <div id="routeMap{{ $order->id }}" class="order-route-map"></div>
     </div>
 @endif
+
+<hr style="margin:20px 0;">
+
+<div class="chat-button-row">
+    <button type="button"
+            class="btn-mini blue chat-action-btn"
+           onclick="openChatModal(
+'chatCustomerDriver{{ $order->id }}',
+'{{ $order->id }}customer_driver'
+)">
+        💬 Chat Customer
+        <span id="badge-driver-customer-{{ $order->id }}" class="chat-unread-badge" style="display:none;">0</span>
+    </button>
+
+    @if(!$isRide)
+        <button type="button"
+                class="btn-mini green chat-action-btn"
+                onclick="openChatModal(
+'chatMerchantDriver{{ $order->id }}',
+'{{ $order->id }}merchant_driver'
+)">
+            💬 Chat Merchant
+            <span id="badge-driver-merchant-{{ $order->id }}" class="chat-unread-badge" style="display:none;">0</span>
+        </button>
+    @endif
+</div>
+
                     </div>
                 </div>
             </div>
+
+            <div id="chatCustomerDriver{{ $order->id }}" class="modal-detail chat-modal">
+                <div class="modal-box">
+                    <div class="modal-head">
+                        <h3>💬 Chat Customer</h3>
+                        <button type="button"
+                                onclick="closeChatModal('chatCustomerDriver{{ $order->id }}','{{ $order->id }}customer_driver')">
+                            ×
+                        </button>
+                    </div>
+
+                    @include('components.order-chat', [
+                        'order' => $order,
+                        'type' => 'customer_driver'
+                    ])
+                </div>
+            </div>
+
+            @if(!$isRide)
+                <div id="chatMerchantDriver{{ $order->id }}" class="modal-detail chat-modal">
+                    <div class="modal-box">
+                        <div class="modal-head">
+                            <h3>💬 Chat Merchant</h3>
+                            <button type="button"
+                                    onclick="closeChatModal('chatMerchantDriver{{ $order->id }}','{{ $order->id }}merchant_driver')">
+                                ×
+                            </button>
+                        </div>
+
+                        @include('components.order-chat', [
+                            'order' => $order,
+                            'type' => 'merchant_driver'
+                        ])
+                    </div>
+                </div>
+            @endif
 
             @endif
 
@@ -426,6 +649,55 @@
     font-weight:900;
 }
 
+.rating-mini{
+    margin:6px 0 0;
+    color:#6b7280;
+    font-size:13px;
+    font-weight:800;
+}
+
+.driver-review-card{
+    padding:16px;
+}
+
+.review-item{
+    background:white;
+    border:1px solid rgba(15,23,42,.06);
+    border-radius:18px;
+    padding:14px;
+    margin-bottom:10px;
+    box-shadow:0 8px 20px rgba(15,23,42,.05);
+}
+
+.review-top{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:8px;
+}
+
+.review-top b{
+    color:var(--primary);
+    font-size:15px;
+}
+
+.review-top span{
+    color:#6b7280;
+    font-size:12px;
+    font-weight:800;
+}
+
+.review-item p{
+    margin:0 0 8px;
+    color:#111827;
+    font-weight:700;
+    line-height:1.5;
+}
+
+.review-item small{
+    color:#6b7280;
+    font-weight:800;
+}
 .driver-topbar p{
     margin:0;
 }
@@ -475,6 +747,44 @@
     font-size:22px;
     font-weight:900;
     color:var(--primary);
+}
+
+.driver-income-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+}
+
+.income-card{
+    background:white;
+    border-radius:22px;
+    padding:16px;
+    box-shadow:0 10px 24px rgba(15,23,42,.07);
+}
+
+.income-card small{
+    display:block;
+    color:#6b7280;
+    font-size:13px;
+    font-weight:800;
+    margin-bottom:8px;
+}
+
+.income-card h3{
+    margin:0;
+    color:var(--primary);
+    font-size:24px;
+    font-weight:900;
+}
+
+.income-card.danger h3{
+    color:#dc2626;
+}
+
+@media(max-width:640px){
+    .driver-income-grid{
+        grid-template-columns:1fr;
+    }
 }
 
 .modal-route-box{
@@ -545,7 +855,69 @@
 .dot-end{
     background:#dc2626;
 }
+.rating-map-grid{
+    display:grid;
+    grid-template-columns:1fr 2fr;
+    gap:14px;
+    align-items:stretch;
+}
 
+.rating-card{
+    min-height:100%;
+}
+
+.rating-map-grid .map-card{
+    margin:0;
+}
+
+.rating-map-grid #driverMap{
+    height:260px;
+}
+
+@media(max-width:640px){
+    .rating-map-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+.driver-toast{
+    position:fixed;
+    top:90px;
+    right:20px;
+    z-index:99999;
+
+    min-width:280px;
+    max-width:380px;
+
+    padding:14px 18px;
+    border-radius:16px;
+
+    color:#fff;
+    font-weight:800;
+
+    box-shadow:0 15px 40px rgba(0,0,0,.15);
+
+    animation:toastSlide .35s ease;
+}
+
+.driver-toast.success{
+    background:#16a34a;
+}
+
+.driver-toast.error{
+    background:#dc2626;
+}
+
+@keyframes toastSlide{
+    from{
+        transform:translateX(100%);
+        opacity:0;
+    }
+    to{
+        transform:translateX(0);
+        opacity:1;
+    }
+}
 .order-route-map{
     width:100%;
     height:230px;
@@ -575,7 +947,48 @@
     color:#374151;
     font-weight:900;
 }
+.driver-commission-box{
+    background:#fff7ed;
+    border-left:6px solid var(--primary);
+    border-radius:18px;
+    padding:14px;
+    margin:14px 0;
+}
 
+.driver-commission-box h4{
+    margin:0 0 10px;
+    color:var(--primary);
+    font-weight:900;
+}
+
+.commission-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    background:white;
+    border-radius:12px;
+    padding:10px 12px;
+    margin-bottom:8px;
+}
+
+.commission-row span{
+    color:#6b7280;
+    font-weight:800;
+    font-size:12px;
+}
+
+.commission-row b{
+    color:#111827;
+    font-weight:900;
+}
+
+.commission-row.total{
+    background:#fee2e2;
+}
+
+.commission-row.total b{
+    color:#dc2626;
+}
 .driver-menu-item:hover{
     background:rgba(15,23,42,.05);
     color:var(--primary);
@@ -819,6 +1232,17 @@
 .btn-mini.red{background:#dc2626;}
 .btn-mini.orange{background:linear-gradient(135deg,var(--primary),var(--secondary));}
 
+.chat-button-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+}
+
+.chat-modal .modal-box{
+    max-width:620px;
+}
+
 .empty-box{
     background:rgba(15,23,42,.04);
     border-radius:16px;
@@ -844,7 +1268,37 @@
     padding:24px;
     overflow-y:auto;
 }
+.wallet-warning-card{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
 
+    background:#fff7ed;
+    border-left:6px solid #f97316;
+
+    padding:18px;
+    margin-bottom:18px;
+
+    border-radius:18px;
+}
+
+.wallet-warning-icon{
+    font-size:30px;
+    line-height:1;
+}
+
+.wallet-warning-title{
+    font-size:16px;
+    font-weight:900;
+    color:#c2410c;
+    margin-bottom:4px;
+}
+
+.wallet-warning-text{
+    color:#7c2d12;
+    font-weight:700;
+    line-height:1.5;
+}
 .modal-box{
     background:white;
     max-width:620px;
@@ -877,6 +1331,40 @@
     background:#fee2e2;
     color:#991b1b;
     font-size:24px;
+}
+
+
+
+.chat-button-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+}
+
+.chat-action-btn{
+    position:relative;
+}
+
+.chat-unread-badge{
+    position:absolute;
+    top:-8px;
+    right:-8px;
+    min-width:22px;
+    height:22px;
+    border-radius:999px;
+    background:#dc2626;
+    color:white;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:900;
+    box-shadow:0 4px 10px rgba(0,0,0,.22);
+    padding:0 6px;
+}
+
+.chat-modal .modal-box{
+    max-width:680px;
 }
 
 @media(max-width:640px){
@@ -930,6 +1418,7 @@ function closeOrderDetail(id) {
         modal.style.display = 'none';
     }
 }
+
 function openOrderDetailWithRoute(id, mapId, startLat, startLng, endLat, endLng) {
     document.getElementById(id).style.display = 'block';
 
@@ -1140,6 +1629,22 @@ function loadActiveDrivers(myLat, myLng){
         });
 }
 
+setTimeout(function(){
+
+    let success = document.getElementById('toastSuccess');
+    let error = document.getElementById('toastError');
+
+    if(success){
+        success.remove();
+    }
+
+    if(error){
+        error.remove();
+    }
+
+},3000);
+
+
 function updateDriverGPS(){
     if (!navigator.geolocation) return;
 
@@ -1160,6 +1665,12 @@ function updateDriverGPS(){
                 longitude: lng
             })
         });
+    }, function(error){
+        console.log('GPS error:', error);
+    }, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
     });
 }
 
@@ -1241,15 +1752,76 @@ function checkDriverNotif() {
         });
 }
 
+function openChatModal(id, chatId)
+{
+    const modal = document.getElementById(id);
+
+    if(modal){
+        modal.style.display = 'block';
+    }
+
+    if(
+        window.initChat &&
+        window.initChat[chatId]
+    ){
+        window.initChat[chatId]();
+    }
+}
+
+function closeChatModal(id, chatId) {
+    const modal = document.getElementById(id);
+    if(modal){
+        modal.style.display = 'none';
+    }
+    if(window.stopChat && window.stopChat[chatId]){
+        window.stopChat[chatId]();
+    }
+    setTimeout(refreshAllChatBadges, 500);
+}
+
+function updateChatBadge(orderId, type, badgeId){
+    fetch(`/orders/${orderId}/chat/${type}/badge`, {
+        headers:{'X-Requested-With':'XMLHttpRequest'}
+    })
+    .then(res => res.json())
+    .then(data => {
+        const badge = document.getElementById(badgeId);
+        if(!badge) return;
+
+        const count = parseInt(data.count || 0);
+        if(count > 0){
+            badge.innerText = count;
+            badge.style.display = 'flex';
+        }else{
+            badge.style.display = 'none';
+            badge.innerText = 0;
+        }
+    })
+    .catch(function(){});
+}
+
+function refreshAllChatBadges(){
+    @foreach($orders as $order)
+        updateChatBadge({{ $order->id }}, 'customer_driver', 'badge-driver-customer-{{ $order->id }}');
+        @if(!in_array($order->order_type, ['ojek', 'car']))
+            updateChatBadge({{ $order->id }}, 'merchant_driver', 'badge-driver-merchant-{{ $order->id }}');
+        @endif
+    @endforeach
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     updateNotifButton();
 
     updateDriverGPS();
-    setInterval(updateDriverGPS, 10000);
+    setInterval(updateDriverGPS, 5000);
 
     checkDriverNotif();
     setInterval(checkDriverNotif, 5000);
+
+    refreshAllChatBadges();
+    setInterval(refreshAllChatBadges, 3000);
 });
 </script>
+@include('components.chat-sound-notification')
 
 @endsection

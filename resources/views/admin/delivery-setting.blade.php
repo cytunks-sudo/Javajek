@@ -11,12 +11,6 @@
         Atur biaya dasar, tarif per kilometer, ongkir minimal, dan radius maksimal driver.
     </p>
 
-    @if(session('success'))
-        <div style="background:#dcfce7;color:#166534;padding:14px;border-radius:16px;margin-bottom:18px;font-weight:900;">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <form method="POST" action="/admin/delivery-setting">
         @csrf
 

@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ChatMessage;
+
 
 class Order extends Model
 {
@@ -15,7 +18,18 @@ class Order extends Model
         'merchant_status',
         'driver_status',
         'driver_reject_count',
+        'food_original_total',
+        'food_markup_amount',
+        'delivery_commission_amount',
+        'admin_commission_amount',
+
     ];
+
+    public function commissionTransaction()
+{
+    return $this->hasOne(\App\Models\DriverWalletTransaction::class)
+        ->where('type', 'commission');
+}
 
     public function items()
     {
@@ -59,4 +73,14 @@ class Order extends Model
 
     return $number;
 }
+public function chatMessages()
+{
+    return $this->hasMany(ChatMessage::class);
+}
+
+public function rating()
+{
+    return $this->hasOne(\App\Models\OrderRating::class);
+}
+
 }

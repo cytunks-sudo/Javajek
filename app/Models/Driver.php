@@ -20,7 +20,12 @@ class Driver extends Model
         'penalty_until',
         'penalty_reason',
         'last_location_update',
+        'balance',
     ];
+
+    protected $casts = [
+    'balance' => 'decimal:2',
+];
 
     public function user()
     {
@@ -35,5 +40,20 @@ class Driver extends Model
     public function activeVehicles()
 {
     return $this->hasMany(DriverVehicle::class)->where('is_active', true);
+}
+
+public function walletTransactions()
+{
+    return $this->hasMany(\App\Models\DriverWalletTransaction::class);
+}
+
+public function orders()
+{
+    return $this->hasMany(\App\Models\Order::class);
+}
+
+public function ratings()
+{
+    return $this->hasMany(\App\Models\OrderRating::class);
 }
 }

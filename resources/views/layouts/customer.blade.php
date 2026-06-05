@@ -489,10 +489,11 @@ main{
                     </div>
 
                     <a href="/profile" class="menu-item">👤 Profile</a>
-                    <a href="/driver" class="menu-item">🛵 Driver</a>
-                    <a href="/merchant" class="menu-item">🏪 Merchant</a>
-                    <a href="/my-orders" class="menu-item">📦 Pesanan Saya</a>
-                    <a href="/cart" class="menu-item">🛒 Keranjang</a>
+<a href="/driver" class="menu-item">🛵 Driver</a>
+<a href="/merchant" class="menu-item">🏪 Merchant</a>
+<a href="/my-orders" class="menu-item">📦 Pesanan Saya</a>
+<a href="/customer/vouchers" class="menu-item">🎁 Voucher Saya</a>
+<a href="/cart" class="menu-item">🛒 Keranjang</a>
 
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

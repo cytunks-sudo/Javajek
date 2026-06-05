@@ -86,6 +86,19 @@ class HomeController extends Controller
             ->latest()
             ->get();
 
+            $markup = $setting->food_price_markup_percent ?? 0;
+
+$foods->each(function($food) use ($markup){
+
+    $food->original_price = $food->price;
+
+    $food->price = round(
+        $food->price +
+        ($food->price * $markup / 100)
+    );
+
+});
+
         $merchants = $foods
             ->pluck('restaurant')
             ->filter()
@@ -129,9 +142,24 @@ class HomeController extends Controller
         $merchant = Restaurant::findOrFail($id);
 
         $foods = Food::with('restaurant')
-            ->where('restaurant_id', $id)
-            ->latest()
-            ->get();
+    ->where('restaurant_id', $id)
+    ->latest()
+    ->get();
+
+$setting = AppSetting::first();
+
+$markup = $setting->food_price_markup_percent ?? 0;
+
+$foods->each(function($food) use ($markup){
+
+    $food->original_price = $food->price;
+
+    $food->price = round(
+        $food->price +
+        ($food->price * $markup / 100)
+    );
+
+});
 
         return view('merchant-foods', compact(
             'merchant',

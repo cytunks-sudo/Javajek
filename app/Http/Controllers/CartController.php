@@ -18,30 +18,53 @@ class CartController extends Controller
     }
 
     public function add($id)
-    {
-        $food = Food::with('restaurant')->findOrFail($id);
+{
+    $food = Food::with('restaurant')->findOrFail($id);
 
-        $cart = session()->get('cart', []);
+    $setting = \App\Models\AppSetting::first();
 
-        if (isset($cart[$id])) {
-            $cart[$id]['qty']++;
-        } else {
-           $cart[$id] = [
-    'id' => $food->id,
-    'name' => $food->name,
-    'restaurant' => $food->restaurant->name,
-    'restaurant_latitude' => $food->restaurant->latitude,
-    'restaurant_longitude' => $food->restaurant->longitude,
-    'price' => $food->price,
-    'qty' => 1,
-    'photo' => $food->photo,
-];
-        }
+    $markup = $setting->food_price_markup_percent ?? 0;
 
-        session()->put('cart', $cart);
+    $sellingPrice = round(
+        $food->price +
+        ($food->price * $markup / 100)
+    );
 
-        return redirect('/cart');
+    $cart = session()->get('cart', []);
+
+    if (isset($cart[$id])) {
+
+        $cart[$id]['qty']++;
+
+    } else {
+
+        $cart[$id] = [
+            'id' => $food->id,
+            'name' => $food->name,
+
+            'restaurant' => $food->restaurant->name,
+
+            'restaurant_latitude' => $food->restaurant->latitude,
+            'restaurant_longitude' => $food->restaurant->longitude,
+
+            'price' => $sellingPrice,
+
+            'original_price' => $food->price,
+
+            'markup_percent' => $markup,
+
+            'qty' => 1,
+
+            'photo' => $food->photo,
+        ];
     }
+
+    session()->put('cart', $cart);
+
+    return redirect('/cart');
+}
+
+
     public function increase($id)
 {
     $cart = session()->get('cart', []);
@@ -173,10 +196,19 @@ public function decrease($id)
         }
 
         $total = 0;
+$foodOriginalTotal = 0;
+$foodMarkupAmount = 0;
 
-        foreach ($cart as $item) {
-            $total += $item['price'] * $item['qty'];
-        }
+foreach ($cart as $item) {
+    $sellingPrice = $item['price'] ?? 0;
+    $originalPrice = $item['original_price'] ?? $sellingPrice;
+    $qty = $item['qty'] ?? 1;
+
+    $total += $sellingPrice * $qty;
+    $foodOriginalTotal += $originalPrice * $qty;
+}
+
+$foodMarkupAmount = $total - $foodOriginalTotal;
 
         $firstItem = reset($cart);
 
@@ -195,6 +227,16 @@ public function decrease($id)
         );
 
         $deliveryFee = $this->calculateDeliveryFee($distanceKm);
+
+        $setting = \App\Models\AppSetting::first();
+
+$deliveryCommissionPercent = $setting->food_driver_commission_percent ?? 0;
+
+$deliveryCommissionAmount = round(
+    $deliveryFee * ($deliveryCommissionPercent / 100)
+);
+
+$adminCommissionAmount = $foodMarkupAmount + $deliveryCommissionAmount;
 
         $grandTotal = $total + $deliveryFee;
 
@@ -225,7 +267,14 @@ public function decrease($id)
             'merchant_status' => 'pending',
             'driver_status' => $driver ? 'pending' : 'rejected',
             'driver_reject_count' => 0,
-        ]);
+        
+            'food_original_total' => $foodOriginalTotal,
+'food_markup_amount' => $foodMarkupAmount,
+'delivery_commission_amount' => $deliveryCommissionAmount,
+'admin_commission_amount' => $adminCommissionAmount,
+
+        
+            ]);
 
         foreach ($cart as $item) {
             OrderItem::create([
@@ -253,13 +302,17 @@ public function decrease($id)
 
 public function orderHistory()
 {
-    $orders = \App\Models\Order::where('user_id', auth()->id())
+    $orders = \App\Models\Order::with([
+            'restaurant',
+            'driver',
+            'rating'
+        ])
+        ->where('user_id', auth()->id())
         ->whereIn('status', ['completed', 'cancelled'])
         ->latest()
         ->get();
 
     return view('cart.order-history', compact('orders'));
 }
-
 
 }

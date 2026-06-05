@@ -255,19 +255,7 @@
 </div>
 
 <main>
-    @if(session('success'))
-        <div class="food-card alert-card alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="food-card alert-card alert-error">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    @yield('content')
+        @yield('content')
 </main>
 
 </body>

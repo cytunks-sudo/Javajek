@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\DeliverySetting;
 use App\Models\DriverVehicle;
+use App\Models\AppSetting;
+use App\Models\DriverWalletTransaction;
+use Illuminate\Support\Facades\DB;
+use App\Models\OrderRating;
+
 
 class DriverController extends Controller
 {
@@ -38,7 +43,85 @@ class DriverController extends Controller
     ->latest()
     ->get();
 
-        return view('driver.dashboard', compact('driver', 'orders'));
+    $setting = \App\Models\AppSetting::first();
+
+$minimumBalance = $setting->driver_min_balance ?? 0;
+
+$driverBalance = $driver->balance ?? 0;
+
+$walletWarning = null;
+
+if ($driverBalance < 0) {
+
+    $walletWarning =
+        'Saldo Anda minus Rp '.number_format(abs($driverBalance)).
+        '. Silakan topup saldo ke admin agar dapat menerima order kembali.';
+
+}
+elseif ($driverBalance < $minimumBalance) {
+
+    $walletWarning =
+        'Saldo Anda kurang dari minimum Rp '.number_format($minimumBalance).
+        '. Silakan topup saldo agar bisa online.';
+}
+
+$completedDriverOrders = \App\Models\Order::where('driver_id', $driver->id)
+    ->where('status', 'completed');
+
+$driverIncomeToday = (clone $completedDriverOrders)
+    ->whereDate('updated_at', today())
+    ->get()
+    ->sum(function($order){
+        return ($order->grand_total ?? $order->total ?? 0)
+            - ($order->admin_commission_amount ?? 0);
+    });
+
+$driverIncomeMonth = (clone $completedDriverOrders)
+    ->whereMonth('updated_at', now()->month)
+    ->whereYear('updated_at', now()->year)
+    ->get()
+    ->sum(function($order){
+        return ($order->grand_total ?? $order->total ?? 0)
+            - ($order->admin_commission_amount ?? 0);
+    });
+
+$driverCompletedOrders = (clone $completedDriverOrders)->count();
+
+$driverCommissionTotal = \App\Models\DriverWalletTransaction::where('driver_id', $driver->id)
+    ->where('type', 'commission')
+    ->sum('amount');
+
+$driverCommissionTotal = abs($driverCommissionTotal);
+
+$driverAverageRating = OrderRating::where('driver_id', $driver->id)
+    ->whereNotNull('driver_rating')
+    ->avg('driver_rating');
+
+$driverTotalReviews = OrderRating::where('driver_id', $driver->id)
+    ->whereNotNull('driver_rating')
+    ->count();
+
+$driverLatestReviews = OrderRating::with(['customer', 'order'])
+    ->where('driver_id', $driver->id)
+    ->whereNotNull('driver_rating')
+    ->latest()
+    ->limit(5)
+    ->get();
+
+
+        return view('driver.dashboard', compact(
+            'driver', 
+            'orders', 
+            'walletWarning', 
+            'minimumBalance', 
+            'driverIncomeToday', 
+            'driverIncomeMonth', 
+            'driverCompletedOrders', 
+            'driverCommissionTotal',
+            'driverAverageRating',
+            'driverTotalReviews',
+            'driverLatestReviews',
+            ));
     }
 
 public function history()
@@ -54,28 +137,71 @@ public function history()
 }
 
     public function setStatus($status)
-    {
-        $driver = Driver::where('user_id', Auth::id())->first();
+{
+    $driver = Driver::where('user_id', Auth::id())->first();
 
-        if (!$driver) {
-            return redirect('/driver');
-        }
-
-        if (!in_array($status, ['online', 'offline'])) {
-            return redirect('/driver');
-        }
-
-        if ($status == 'online' && $driver->penalty_until && now()->lt($driver->penalty_until)) {
-            return redirect('/driver')
-                ->with('error', 'Akun driver terkena penalti sampai ' . $driver->penalty_until);
-        }
-
-        $driver->update([
-            'status' => $status,
-        ]);
-
-        return redirect('/driver');
+    if (!$driver) {
+        return redirect('/driver')
+            ->with('error', 'Data driver tidak ditemukan.');
     }
+
+    if (!in_array($status, ['online', 'offline'])) {
+        return redirect('/driver')
+            ->with('error', 'Status driver tidak valid.');
+    }
+
+    if (
+        $status == 'online' &&
+        $driver->penalty_until &&
+        now()->lt($driver->penalty_until)
+    ) {
+        return redirect('/driver')
+            ->with('error', 'Akun driver terkena penalti sampai ' . $driver->penalty_until);
+    }
+
+    $setting = \App\Models\AppSetting::first();
+
+$minimumBalance = $setting->driver_min_balance ?? 0;
+
+if (
+    $status == 'online' &&
+    ($driver->balance ?? 0) < $minimumBalance
+) {
+    return redirect('/driver')
+        ->with(
+            'error',
+            'Saldo driver kurang dari minimum Rp '.number_format($minimumBalance)
+        );
+}
+
+    if ($status == 'online') {
+
+        $setting = \App\Models\AppSetting::first();
+
+        $minBalance = $setting->driver_min_balance ?? 0;
+        $driverBalance = $driver->balance ?? 0;
+
+        if ($driverBalance < $minBalance) {
+            return redirect('/driver')
+                ->with(
+                    'error',
+                    'Saldo tidak mencukupi. Minimal saldo untuk online Rp ' . number_format($minBalance)
+                );
+        }
+    }
+
+    $driver->update([
+        'status' => $status,
+    ]);
+
+    return redirect('/driver')
+        ->with(
+            'success',
+            $status == 'online'
+                ? 'Driver berhasil online.'
+                : 'Driver berhasil offline.'
+        );
+}
 
 public function activeLocations()
 {
@@ -132,7 +258,7 @@ public function activeLocations()
         ]);
     }
 
-    public function updateOrderStatus($id, $status)
+  public function updateOrderStatus($id, $status)
 {
     $driver = Driver::where('user_id', Auth::id())->firstOrFail();
 
@@ -149,26 +275,121 @@ public function activeLocations()
             ->with('error', 'Status tidak valid.');
     }
 
-    $order = Order::where('id', $id)
+    $order = Order::with(['items.food'])
+        ->where('id', $id)
         ->where('driver_id', $driver->id)
         ->firstOrFail();
 
-    $order->update([
-        'status' => $status
-    ]);
-
-    if ($status == 'completed') {
-
-        $driver->update([
-            'status' => 'online'
+    if ($status != 'completed') {
+        $order->update([
+            'status' => $status
         ]);
 
+        return redirect('/driver')
+            ->with('success', 'Status order diperbarui.');
     }
 
+    DB::transaction(function () use ($order, $driver, $status) {
+
+        $setting = AppSetting::first();
+        $orderType = $order->order_type ?? 'food';
+
+        $commissionAmount = 0;
+
+        if ($orderType == 'car') {
+
+            $commissionPercent = $setting->car_driver_commission_percent ?? 0;
+            $baseAmount = $order->total ?? 0;
+
+            $commissionAmount = round($baseAmount * ($commissionPercent / 100));
+
+        } elseif ($orderType == 'ojek') {
+
+            $commissionPercent = $setting->ride_driver_commission_percent ?? 0;
+            $baseAmount = $order->total ?? 0;
+
+            $commissionAmount = round($baseAmount * ($commissionPercent / 100));
+
+        } else {
+
+            /*
+            |--------------------------------------------------------------------------
+            | FOOD
+            |--------------------------------------------------------------------------
+            | Driver pegang uang makanan markup + ongkir.
+            | Jadi saldo driver dipotong:
+            | markup food + komisi ongkir.
+            */
+
+            $foodOriginalTotal = 0;
+            $foodSellingTotal = 0;
+
+            foreach ($order->items as $item) {
+                $qty = $item->qty ?? 1;
+
+                // Harga asli merchant dari tabel foods
+                $originalPrice = $item->food->price ?? $item->price;
+
+                // Harga jual customer dari order_items
+                $sellingPrice = $item->price ?? $originalPrice;
+
+                $foodOriginalTotal += $originalPrice * $qty;
+                $foodSellingTotal += $sellingPrice * $qty;
+            }
+
+            $foodMarkupAmount = max(0, $foodSellingTotal - $foodOriginalTotal);
+
+            $deliveryCommissionPercent = $setting->food_driver_commission_percent ?? 0;
+
+            $deliveryCommissionAmount = round(
+                ($order->delivery_fee ?? 0) * ($deliveryCommissionPercent / 100)
+            );
+
+            $commissionAmount = $foodMarkupAmount + $deliveryCommissionAmount;
+
+            $order->update([
+                'food_original_total' => $foodOriginalTotal,
+                'food_markup_amount' => $foodMarkupAmount,
+                'delivery_commission_amount' => $deliveryCommissionAmount,
+                'admin_commission_amount' => $commissionAmount,
+            ]);
+        }
+
+        $freshDriver = Driver::where('id', $driver->id)
+            ->lockForUpdate()
+            ->first();
+
+        $before = (float) ($freshDriver->balance ?? 0);
+        $after = $before - $commissionAmount;
+
+        $order->update([
+            'status' => $status
+        ]);
+
+        $minimumBalance = $setting->driver_min_balance ?? 0;
+
+        $freshDriver->update([
+            'balance' => $after,
+            'status' => $after >= $minimumBalance ? 'online' : 'offline',
+        ]);
+
+        if ($commissionAmount > 0) {
+            DriverWalletTransaction::create([
+                'driver_id' => $freshDriver->id,
+                'type' => 'commission',
+                'amount' => -$commissionAmount,
+                'balance_before' => $before,
+                'balance_after' => $after,
+                'order_id' => $order->id,
+                'description' => 'Komisi admin ' . strtoupper($orderType) . ' order ' . ($order->order_number ?? '#'.$order->id),
+                'created_by' => null,
+            ]);
+        }
+    });
+
     return redirect('/driver')
-        ->with('success', 'Status order diperbarui.');
+        ->with('success', 'Order selesai. Komisi admin berhasil dipotong dari saldo driver.');
 }
-  
 public function acceptOrder($id)
 {
     $driver = Driver::where('user_id', Auth::id())->firstOrFail();
@@ -423,6 +644,80 @@ public function deleteVehicle($id)
 
     return redirect('/driver/settings')
         ->with('success', 'Kendaraan berhasil dihapus.');
+}
+
+public function walletHistory()
+{
+    $driver = Driver::where('user_id', Auth::id())
+        ->firstOrFail();
+
+    $transactions = DriverWalletTransaction::where('driver_id', $driver->id)
+        ->latest()
+        ->get();
+
+    return view('driver.wallet-history', compact(
+        'driver',
+        'transactions'
+    ));
+}
+
+public function income()
+{
+    $driver = Driver::where('user_id', Auth::id())
+        ->firstOrFail();
+
+    $orders = Order::with([
+            'user',
+            'restaurant',
+            'items.food',
+            'commissionTransaction',
+        ])
+        ->where('driver_id', $driver->id)
+        ->where('status', 'completed')
+        ->latest()
+        ->get();
+
+    $todayIncome = $orders
+        ->where('updated_at', '>=', now()->startOfDay())
+        ->sum(function($order){
+            $cash = ($order->grand_total ?? 0) > 0
+                ? $order->grand_total
+                : ($order->total ?? 0);
+
+            $commission = $order->commissionTransaction
+                ? abs($order->commissionTransaction->amount)
+                : ($order->admin_commission_amount ?? 0);
+
+            return $cash - $commission;
+        });
+
+    $monthIncome = $orders
+        ->where('updated_at', '>=', now()->startOfMonth())
+        ->sum(function($order){
+            $cash = ($order->grand_total ?? 0) > 0
+                ? $order->grand_total
+                : ($order->total ?? 0);
+
+            $commission = $order->commissionTransaction
+                ? abs($order->commissionTransaction->amount)
+                : ($order->admin_commission_amount ?? 0);
+
+            return $cash - $commission;
+        });
+
+    $totalCommission = $orders->sum(function($order){
+        return $order->commissionTransaction
+            ? abs($order->commissionTransaction->amount)
+            : ($order->admin_commission_amount ?? 0);
+    });
+
+    return view('driver.income', compact(
+        'driver',
+        'orders',
+        'todayIncome',
+        'monthIncome',
+        'totalCommission'
+    ));
 }
 
 }

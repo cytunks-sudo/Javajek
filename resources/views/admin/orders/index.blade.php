@@ -13,7 +13,6 @@
         <div class="count-badge">
             {{ $orders->count() }} Order
         </div>
-       
     </div>
 
     <form method="GET" action="/admin/orders" class="filter-card">
@@ -28,11 +27,12 @@
             <option value="searching_driver" {{ request('status') == 'searching_driver' ? 'selected' : '' }}>Searching Driver</option>
             <option value="waiting_response" {{ request('status') == 'waiting_response' ? 'selected' : '' }}>Waiting Response</option>
             <option value="driver_to_merchant" {{ request('status') == 'driver_to_merchant' ? 'selected' : '' }}>Driver Ke Merchant</option>
+            <option value="driver_to_pickup" {{ request('status') == 'driver_to_pickup' ? 'selected' : '' }}>Driver Ke Jemput</option>
             <option value="dalam_pengiriman" {{ request('status') == 'dalam_pengiriman' ? 'selected' : '' }}>Dalam Pengiriman</option>
             <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Selesai</option>
             <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
         </select>
-        
+
         <button class="filter-btn">
             🔍 Cari
         </button>
@@ -44,280 +44,528 @@
         @endif
     </form>
 
-    @forelse($orders as $order)
+    <div class="order-table-card">
 
-        @php
-            $drivers = \App\Models\Driver::with('user')
-                ->where('status', 'online')
-                ->get();
+        <div class="table-wrap">
+            <table class="order-table">
+                <thead>
+                    <tr>
+                        <th>Nomor Order</th>
+                        <th>Customer</th>
+                        <th>Layanan</th>
+                        <th>Driver</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
 
-            $isFinished = in_array($order->status, ['cancelled', 'completed']);
+                <tbody>
+                    @forelse($orders as $order)
 
-            $orderType = $order->order_type ?? 'food';
+                        @php
+                            $isFinished = in_array($order->status, ['cancelled', 'completed']);
+                            $orderType = $order->order_type ?? 'food';
 
-            $orderIcon = match($orderType) {
-                'ojek' => '🏍️',
-                'car' => '🚗',
-                default => '🍔',
-            };
-        @endphp
+                            $orderIcon = match($orderType) {
+                                'ojek' => '🏍️',
+                                'car' => '🚗',
+                                default => '🍔',
+                            };
 
-        <div class="order-card">
+                            $orderLabel = match($orderType) {
+                                'ojek' => 'Ojek',
+                                'car' => 'J-Car',
+                                default => 'Food',
+                            };
 
-            <div class="order-top">
-                <div class="order-title">
-                    <div class="order-icon">{{ $orderIcon }}</div>
+                            $drivers = [];
 
-                    <div>
-                        <h3>
-                            {{ ucfirst($orderType) }} #{{ $order->order_number ?? $order->id }}
-                        </h3>
+                            if (!$isFinished) {
+                                $drivers = \App\Http\Controllers\AdminOrderController::availableDriversForOrder($order);
+                            }
 
-                        <p>
-                            Customer:
-                            <b>{{ $order->user->name ?? '-' }}</b>
-                        </p>
-                    </div>
-                </div>
+                            $displayTotal = ($order->grand_total ?? 0) > 0
+    ? $order->grand_total
+    : (($order->total ?? 0) + ($order->delivery_fee ?? 0));
+                        @endphp
 
-                <span class="status-badge status-{{ $order->status }}">
-                    {{ strtoupper(str_replace('_',' ', $order->status)) }}
-                </span>
-            </div>
+                        <tr>
+              
+                            <td>
+                                
+                                <div class="order-code-box">
+                                    <b>{{ $order->order_number ?? $order->order_code ?? $order->id }}</b>
+                                    <span class="type-badge type-{{ $orderType }}">
+                                    {{ $orderIcon }} {{ $orderLabel }}
+                                </span>
+                                    <small>{{ $order->created_at?->format('d/m/Y H:i') }}</small>
+                                                              
+                                </div>
+                            </td>
 
-            <div class="order-info-grid">
+                            <td>
+                                <b>{{ $order->user->name ?? '-' }}</b>
+                                <small>{{ $order->user->phone ?? '' }}</small>
+                                
+                            </td>
+
+                            <td>
+                                <b>{{ $order->restaurant->name ?? $orderLabel }}</b>
+
+                                @if($orderType != 'food')
+                                    <small>{{ $order->pickup_address ? \Illuminate\Support\Str::limit($order->pickup_address, 38) : '-' }}</small>
+                                @else
+                                    <small>{{ $order->address ? \Illuminate\Support\Str::limit($order->address, 38) : '-' }}</small>
+                                @endif
+                                
+                            </td>
+
+                            <td>
+                                <b>{{ $order->driver->user->name ?? 'Belum ada' }}</b>
+                                <small>{{ strtoupper($order->driver_status ?? '-') }}</small>
+                            </td>
+
+                            <td>
+                                <b class="price-text">
+                                    Rp {{ number_format($displayTotal) }}
+                                </b>
+
+                                @if(($order->voucher_discount ?? 0) > 0)
+                                    <small class="discount-mini">
+                                        Voucher - Rp {{ number_format($order->voucher_discount) }}
+                                    </small>
+                                @endif
+                            </td>
+
+                            <td>
+                                <span class="status-badge status-{{ $order->status }}">
+                                    {{ strtoupper(str_replace('_',' ', $order->status)) }}
+                                </span>
+                            </td>
+
+                            <td>
+    <div class="action-box">
+        
+
+        @if(!$isFinished)
+            <form method="POST"
+                  action="/admin/orders/{{ $order->id }}/assign-driver"
+                  class="assign-form">
+                @csrf
+
+                <select name="driver_id" class="driver-select">
+                    @forelse($drivers as $driver)
+                        <option value="{{ $driver->id }}">
+                            {{ $driver->user->name ?? '-' }}
+                            - {{ $driver->vehicle_type }}
+                            - {{ number_format($driver->distance_km, 1) }} km
+                        </option>
+                    @empty
+                        <option value="">Tidak ada driver</option>
+                    @endforelse
+                </select>
+
+                <button class="assign-btn">Kirim</button>
+            </form>
+
+            <button type="button"
+                class="btn-action blue"
+                onclick="openOrderDetail('orderDetail{{ $order->id }}')">
+            Detail
+        </button>
+
+            <a href="/admin/orders/{{ $order->id }}/status/cancelled"
+               class="btn-action red"
+               onclick="return confirm('Yakin ingin membatalkan order ini?')">
+                Batal
+            </a>
+        @else
+            <span class="finished-info">
+                {{ strtoupper($order->status) }}
+            </span>
+        @endif
+    </div>
+</td>
+                            
+                        </tr>
+
+                    @empty
+                        <tr>
+                            <td colspan="9">
+                                <div class="empty-box">
+                                    Belum ada order masuk.
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    @foreach($orders as $order)
+
+    @php
+        $orderType = $order->order_type ?? 'food';
+
+        $orderIcon = match($orderType) {
+            'ojek' => '🏍️',
+            'car' => '🚗',
+            default => '🍔',
+        };
+
+        $orderLabel = match($orderType) {
+            'ojek' => 'Ojek',
+            'car' => 'J-Car',
+            default => 'Food',
+        };
+
+        $commission = $order->commissionTransaction;
+
+        $itemSubTotal = 0;
+
+        foreach ($order->items as $item) {
+            $itemSubTotal += ($item->qty ?? 1) * ($item->price ?? 0);
+        }
+
+        if ($orderType == 'food') {
+            $displayTotal = ($order->grand_total ?? 0) > 0
+                ? $order->grand_total
+                : (
+                    $itemSubTotal
+                    + ($order->delivery_fee ?? 0)
+                    - ($order->voucher_discount ?? 0)
+                );
+        } else {
+            $displayTotal = ($order->grand_total ?? 0) > 0
+                ? $order->grand_total
+                : ($order->total ?? 0);
+        }
+
+        $foodOriginalTotal = $order->food_original_total ?? 0;
+        $foodMarkupAmount = $order->food_markup_amount ?? 0;
+        $deliveryCommissionAmount = $order->delivery_commission_amount ?? 0;
+        $adminCommissionAmount = $commission ? abs($commission->amount) : 0;
+
+        $driverCash = $displayTotal;
+        $driverNetCash = $driverCash - $adminCommissionAmount;
+    @endphp
+
+    <div id="orderDetail{{ $order->id }}" class="modal-detail">
+        <div class="modal-box receipt-modal">
+
+            <div class="modal-head">
                 <div>
-                    <span>Restoran / Layanan</span>
-                    <b>{{ $order->restaurant->name ?? ucfirst($orderType) }}</b>
+                    <h3>Detail Order #{{ $order->order_number ?? $order->order_code ?? $order->id }}</h3>
+                    <p>{{ $orderIcon }} {{ $orderLabel }}</p>
                 </div>
 
-                <div>
-                    <span>Driver</span>
-                    <b>{{ $order->driver->user->name ?? 'Belum ada' }}</b>
-                </div>
-
-                <div>
-                    <span>Total</span>
-                    <b>Rp {{ number_format($order->grand_total ?? $order->total) }}</b>
-                </div>
-
-                <div>
-                    <span>Status Driver</span>
-                    <b>{{ strtoupper($order->driver_status ?? '-') }}</b>
-                </div>
-            </div>
-
-            <div class="order-actions">
-
-                <button type="button"
-                        class="btn-action blue"
-                        onclick="openOrderDetail('orderDetail{{ $order->id }}')">
-                    Detail
+                <button type="button" onclick="closeOrderDetail('orderDetail{{ $order->id }}')">
+                    ×
                 </button>
-
-                @if(!$isFinished)
-
-                    @php
-    $drivers = \App\Http\Controllers\AdminOrderController::availableDriversForOrder($order);
-@endphp
-
-<form method="POST"
-      action="/admin/orders/{{ $order->id }}/assign-driver"
-      class="assign-form">
-    @csrf
-
-    <select name="driver_id" class="driver-select">
-        @forelse($drivers as $driver)
-            <option value="{{ $driver->id }}">
-                {{ $driver->user->name ?? '-' }}
-                - {{ $driver->vehicle_type }}
-                - {{ number_format($driver->distance_km, 1) }} km
-            </option>
-        @empty
-            <option value="">
-                Tidak ada driver dalam radius
-            </option>
-        @endforelse
-    </select>
-
-    <button class="btn-action">
-        Kirim ke Driver
-    </button>
-</form>
-
-                    
-
-                    <a href="/admin/orders/{{ $order->id }}/status/cancelled"
-                       class="btn-action red"
-                       onclick="return confirm('Yakin ingin membatalkan order ini?')">
-                        Batalkan
-                    </a>
-
-                @else
-
-                    <div class="finished-info">
-                        Order {{ strtoupper($order->status) }}
-                    </div>
-
-                @endif
-
             </div>
 
-        </div>
-
-        <div id="orderDetail{{ $order->id }}" class="modal-detail">
-            <div class="modal-box">
-
-                <div class="modal-head">
-                    <div>
-                        <h3>Detail Order #{{ $order->order_number ?? $order->id }}</h3>
-                        <p>{{ ucfirst($orderType) }}</p>
-                    </div>
-
-                    <button type="button"
-                            onclick="closeOrderDetail('orderDetail{{ $order->id }}')">
-                        ×
-                    </button>
+            <div class="detail-grid">
+                <div>
+                    <small>Customer</small>
+                    <b>{{ $order->user->name ?? '-' }}</b>
                 </div>
 
-                <div class="modal-body">
+                <div>
+                    <small>Driver</small>
+                    <b>{{ $order->driver->user->name ?? '-' }}</b>
+                </div>
 
-                    <div class="detail-grid">
-                        <div>
-                            <small>Customer</small>
-                            <b>{{ $order->user->name ?? '-' }}</b>
-                        </div>
+                <div>
+                    <small>Restoran / Layanan</small>
+                    <b>{{ $order->restaurant->name ?? $orderLabel }}</b>
+                </div>
 
-                        <div>
-                            <small>Restaurant / Layanan</small>
-                            <b>{{ $order->restaurant->name ?? ucfirst($orderType) }}</b>
-                        </div>
+                <div>
+                    <small>Status</small>
+                    <b>{{ strtoupper(str_replace('_',' ', $order->status)) }}</b>
+                </div>
+            </div>
 
-                        <div>
-                            <small>Driver</small>
-                            <b>{{ $order->driver->user->name ?? '-' }}</b>
-                        </div>
+            <hr>
 
-                        <div>
-                            <small>Status Order</small>
-                            <b>{{ strtoupper($order->status) }}</b>
-                        </div>
+            @if($orderType == 'food')
 
-                        <div>
-                            <small>Status Merchant</small>
-                            <b>{{ strtoupper($order->merchant_status ?? '-') }}</b>
-                        </div>
+                <div class="address-box">
+                    <span>📍 Alamat Antar</span>
+                    <p>{{ $order->address ?? '-' }}</p>
+                </div>
 
-                        <div>
-                            <small>Status Driver</small>
-                            <b>{{ strtoupper($order->driver_status ?? '-') }}</b>
-                        </div>
-                    </div>
+                <h4>🍔 Rincian Nota</h4>
 
-                    <hr>
+                <table class="item-table">
+                    <thead>
+                        <tr>
+                            <th>Menu</th>
+                            <th>Qty</th>
+                            <th>Harga</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
 
-                    <div class="price-box">
-                        <div>
-                            <span>Total Produk / Tarif</span>
-                            <b>Rp {{ number_format($order->total) }}</b>
-                        </div>
-
-                        <div>
-                            <span>Ongkir</span>
-                            <b>Rp {{ number_format($order->delivery_fee ?? 0) }}</b>
-                        </div>
-
-                        <div class="grand-total">
-                            <span>Grand Total</span>
-                            <b>Rp {{ number_format($order->grand_total ?? $order->total) }}</b>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <h4>Item Pesanan</h4>
-
-                    <div class="item-list">
+                    <tbody>
                         @forelse($order->items as $item)
-                            <div class="item-row">
-                                <span>{{ $item->food->name ?? '-' }}</span>
-                                <b>x {{ $item->qty }}</b>
-                            </div>
+                            @php
+                                $qty = $item->qty ?? 1;
+                                $price = $item->price ?? 0;
+                                $lineTotal = $qty * $price;
+                            @endphp
+
+                            <tr>
+                                <td>{{ $item->food->name ?? '-' }}</td>
+                                <td class="text-center">{{ $qty }}</td>
+                                <td class="text-right">Rp {{ number_format($price) }}</td>
+                                <td class="text-right">Rp {{ number_format($lineTotal) }}</td>
+                            </tr>
                         @empty
-                            <div class="empty-box">
-                                Tidak ada item.
-                            </div>
+                            <tr>
+                                <td colspan="4">Tidak ada item pesanan.</td>
+                            </tr>
                         @endforelse
-                    </div>
+                    </tbody>
 
-                    @if($order->status == 'cancelled')
-                        <div class="cancel-box">
-                            Order ini sudah dibatalkan.
-                        </div>
-                    @endif
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Sub Total Produk</td>
+                            <td class="text-right">Rp {{ number_format($itemSubTotal) }}</td>
+                        </tr>
 
+                        <tr>
+                            <td colspan="3">Ongkir</td>
+                            <td class="text-right">Rp {{ number_format($order->delivery_fee ?? 0) }}</td>
+                        </tr>
+
+                        @if(($order->voucher_discount ?? 0) > 0)
+                            <tr class="voucher-row">
+                                <td colspan="3">Voucher {{ $order->voucher_code }}</td>
+                                <td class="text-right">- Rp {{ number_format($order->voucher_discount) }}</td>
+                            </tr>
+                        @endif
+
+                        <tr class="grand-row">
+                            <td colspan="3">Grand Total</td>
+                            <td class="text-right">Rp {{ number_format($displayTotal) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+            @else
+
+                <div class="address-box">
+                    <span>📍 Jemput</span>
+                    <p>{{ $order->pickup_address ?? '-' }}</p>
                 </div>
 
-            </div>
+                <div class="address-box">
+                    <span>🏁 Tujuan</span>
+                    <p>{{ $order->destination_address ?? '-' }}</p>
+                </div>
+
+                <h4>🧾 Rincian Perjalanan</h4>
+
+                <table class="item-table">
+                    <thead>
+                        <tr>
+                            <th>Jemput → Tujuan</th>
+                            <th>Jarak</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <td>
+                                {{ \Illuminate\Support\Str::limit($order->pickup_address ?? '-', 35) }}
+                                →
+                                {{ \Illuminate\Support\Str::limit($order->destination_address ?? '-', 35) }}
+                            </td>
+
+                            <td class="text-center">
+                                {{ number_format($order->distance_km ?? 0, 1) }} km
+                            </td>
+
+                            <td class="text-right">
+                                Rp {{ number_format($order->total ?? 0) }}
+                            </td>
+                        </tr>
+                    </tbody>
+
+                    <tfoot>
+                        <tr>
+                            <td colspan="2">Tarif {{ $orderLabel }}</td>
+                            <td class="text-right">Rp {{ number_format($order->total ?? 0) }}</td>
+                        </tr>
+
+                        @if(($order->voucher_discount ?? 0) > 0)
+                            <tr class="voucher-row">
+                                <td colspan="2">Voucher {{ $order->voucher_code }}</td>
+                                <td class="text-right">- Rp {{ number_format($order->voucher_discount) }}</td>
+                            </tr>
+                        @endif
+
+                        <tr class="grand-row">
+                            <td colspan="2">Grand Total</td>
+                            <td class="text-right">Rp {{ number_format($displayTotal) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+            @endif
+
+            @if($commission)
+                <hr>
+
+                <div class="commission-box">
+                    <h4>💰 Rincian Komisi Admin</h4>
+
+                    <table class="commission-table">
+                        <tr>
+                            <td>Total Customer Bayar</td>
+                            <td>Rp {{ number_format($driverCash) }}</td>
+                        </tr>
+
+                        @if($orderType == 'food')
+                            <tr>
+                                <td>Harga Asli Merchant</td>
+                                <td>Rp {{ number_format($foodOriginalTotal) }}</td>
+                            </tr>
+
+                            <tr>
+                                <td>Ongkir</td>
+                                <td>Rp {{ number_format($order->delivery_fee ?? 0) }}</td>
+                            </tr>
+
+                            <tr class="divider">
+                                <td colspan="2"></td>
+                            </tr>
+
+                            <tr class="minus">
+                                <td>Komisi Food / Markup</td>
+                                <td>- Rp {{ number_format($foodMarkupAmount) }}</td>
+                            </tr>
+
+                            <tr class="minus">
+                                <td>Komisi Ongkir</td>
+                                <td>- Rp {{ number_format($deliveryCommissionAmount) }}</td>
+                            </tr>
+                        @else
+                            <tr class="minus">
+                                <td>Komisi {{ $orderLabel }}</td>
+                                <td>- Rp {{ number_format($adminCommissionAmount) }}</td>
+                            </tr>
+                        @endif
+
+                        <tr class="total">
+                            <td>Total Komisi Admin</td>
+                            <td>Rp {{ number_format($adminCommissionAmount) }}</td>
+                        </tr>
+
+                        <tr class="divider">
+                            <td colspan="2"></td>
+                        </tr>
+
+                        <tr>
+                            <td>Driver Pegang Cash</td>
+                            <td>Rp {{ number_format($driverCash) }}</td>
+                        </tr>
+
+                        <tr class="success">
+                            <td>Hak Bersih Driver</td>
+                            <td>Rp {{ number_format($driverNetCash) }}</td>
+                        </tr>
+
+                        <tr>
+                            <td>Saldo Sebelum</td>
+                            <td>Rp {{ number_format($commission->balance_before) }}</td>
+                        </tr>
+
+                        <tr>
+                            <td>Saldo Sesudah</td>
+                            <td>Rp {{ number_format($commission->balance_after) }}</td>
+                        </tr>
+
+                        <tr>
+                            <td>Waktu Potong</td>
+                            <td>{{ $commission->created_at?->format('d/m/Y H:i') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            @endif
+
+            @if($order->status == 'cancelled')
+                <div class="cancel-box">
+                    Order ini sudah dibatalkan.
+                </div>
+            @endif
+
         </div>
+    </div>
 
-    @empty
-
-        <div class="empty-box">
-            Belum ada order masuk.
-        </div>
-
-    @endforelse
+@endforeach
 
 </div>
 
 <style>
 .admin-order-page{
     width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.page-head,
+.filter-card,
+.order-table-card{
+    background:white;
+    border-radius:24px;
+    padding:18px;
+    box-shadow:0 12px 28px rgba(15,23,42,.08);
 }
 
 .page-head{
-    background:white;
-    border-radius:26px;
-    padding:22px;
-    margin-bottom:18px;
     display:flex;
     justify-content:space-between;
     align-items:center;
-    gap:16px;
-    box-shadow:0 12px 28px rgba(15,23,42,.07);
+    gap:14px;
+    flex-wrap:wrap;
 }
 
 .page-head h2{
     margin:0;
-    color:var(--primary-color);
-    font-size:28px;
+    color:var(--primary-color, var(--primary, #f97316));
+    font-size:26px;
     font-weight:900;
 }
 
 .page-head p{
-    margin:6px 0 0;
+    margin:5px 0 0;
     color:#6b7280;
 }
 
 .count-badge{
-    background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
+    background:linear-gradient(
+        135deg,
+        var(--primary-color, var(--primary, #f97316)),
+        var(--secondary-color, var(--secondary, #fb923c))
+    );
     color:white;
     padding:12px 18px;
-    border-radius:16px;
+    border-radius:14px;
     font-weight:900;
     white-space:nowrap;
 }
 
 .filter-card{
-    background:white;
-    border-radius:22px;
-    padding:14px;
-    margin-bottom:18px;
     display:flex;
     gap:10px;
     flex-wrap:wrap;
-    box-shadow:0 10px 24px rgba(15,23,42,.06);
 }
 
 .filter-input,
@@ -326,32 +574,37 @@
     border:none;
     outline:none;
     background:rgba(15,23,42,.05);
-    border-radius:16px;
-    padding:13px 14px;
+    border-radius:14px;
+    padding:12px 13px;
     font-weight:700;
 }
 
 .filter-input{
     flex:1;
-    min-width:260px;
+    min-width:240px;
 }
 
 .filter-select{
-    min-width:210px;
+    min-width:200px;
 }
 
 .filter-btn,
 .reset-btn{
     border:none;
     text-decoration:none;
-    padding:13px 18px;
-    border-radius:16px;
+    padding:12px 16px;
+    border-radius:14px;
     font-weight:900;
     cursor:pointer;
+    white-space:nowrap;
 }
 
 .filter-btn{
-    background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
+    background:linear-gradient(
+        135deg,
+        var(--primary-color, var(--primary, #f97316)),
+        var(--secondary-color, var(--secondary, #fb923c))
+    );
     color:white;
 }
 
@@ -360,90 +613,113 @@
     color:#991b1b;
 }
 
-.order-card{
-    background:white;
-    border-radius:26px;
-    padding:20px;
-    margin-bottom:16px;
-    box-shadow:0 12px 28px rgba(15,23,42,.07);
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
 }
 
-.order-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:16px;
-    border-bottom:1px solid rgba(15,23,42,.07);
-    padding-bottom:16px;
-    margin-bottom:16px;
+.order-table{
+    width:100%;
+    min-width:900px;
+    border-collapse:collapse;
 }
 
-.order-title{
+.action-box{
     display:flex;
-    gap:14px;
+    gap:6px;
+    flex-wrap:wrap;
     align-items:center;
+    min-width:220px;
 }
 
-.order-icon{
-    width:52px;
-    height:52px;
-    border-radius:16px;
-    background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
-    color:white;
+.assign-form{
     display:flex;
+    gap:6px;
     align-items:center;
-    justify-content:center;
-    font-size:24px;
-    flex-shrink:0;
+    width:100%;
 }
 
-.order-title h3{
-    margin:0;
-    color:#111827;
-    font-size:20px;
-    font-weight:900;
+.driver-select{
+    flex:1;
+    min-width:130px;
+    font-size:11px;
+    padding:8px 9px;
 }
 
-.order-title p{
-    margin:4px 0 0;
-    color:#6b7280;
+.assign-btn{
+    padding:8px 10px;
 }
 
-.order-info-grid{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:12px;
-    margin-bottom:16px;
-}
-
-.order-info-grid div{
-    background:rgba(15,23,42,.04);
-    border-radius:16px;
-    padding:13px;
-}
-
-.order-info-grid span,
-.detail-grid small{
-    display:block;
-    color:#6b7280;
-    font-size:12px;
-    font-weight:800;
-    margin-bottom:5px;
-}
-
-.order-info-grid b,
-.detail-grid b{
-    color:#111827;
-    font-weight:900;
-}
-
-.status-badge{
-    display:inline-block;
-    padding:8px 12px;
-    border-radius:999px;
+.order-table th{
+    background:#fff7ed;
+    color:var(--primary-color, var(--primary, #f97316));
+    padding:12px 10px;
+    text-align:left;
     font-size:12px;
     font-weight:900;
     white-space:nowrap;
+}
+
+.order-table td{
+    padding:12px 10px;
+    border-bottom:1px solid #f3f4f6;
+    vertical-align:middle;
+    font-size:12px;
+    color:#111827;
+}
+
+.order-table td b{
+    display:block;
+    font-weight:900;
+}
+
+.order-table td small{
+    display:block;
+    margin-top:3px;
+    color:#6b7280;
+    font-size:11px;
+    font-weight:700;
+}
+
+.order-code-box b{
+    color:var(--primary-color, var(--primary, #f97316));
+}
+
+.price-text{
+    color:#111827;
+    white-space:nowrap;
+}
+
+.discount-mini{
+    color:#16a34a !important;
+}
+
+.type-badge,
+.status-badge{
+    display:inline-block;
+    padding:7px 10px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:900;
+    white-space:nowrap;
+}
+
+.type-food{
+    background:#ffedd5;
+    color:#9a3412;
+}
+
+.type-ojek{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.type-car{
+    background:#e5e7eb;
+    color:#374151;
+}
+
+.status-badge{
     background:#fef3c7;
     color:#92400e;
 }
@@ -476,28 +752,50 @@
     color:#9a3412;
 }
 
-.order-actions{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    align-items:center;
-}
-
 .assign-form{
     display:flex;
-    gap:8px;
+    gap:6px;
+    align-items:center;
+    min-width:230px;
+}
+
+.driver-select{
+    width:150px;
+    font-size:11px;
+    padding:9px 10px;
+}
+
+.assign-btn{
+    border:none;
+    background:linear-gradient(
+        135deg,
+        var(--primary-color, var(--primary, #f97316)),
+        var(--secondary-color, var(--secondary, #fb923c))
+    );
+    color:white;
+    padding:9px 10px;
+    border-radius:11px;
+    font-size:11px;
+    font-weight:900;
+    cursor:pointer;
+    white-space:nowrap;
+}
+
+.action-row{
+    display:flex;
+    gap:6px;
     flex-wrap:wrap;
 }
 
 .btn-action{
     border:none;
-    background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
     color:white;
-    padding:10px 14px;
-    border-radius:14px;
+    padding:8px 10px;
+    border-radius:10px;
     font-weight:900;
     text-decoration:none;
     cursor:pointer;
+    font-size:11px;
     display:inline-block;
 }
 
@@ -505,24 +803,18 @@
     background:#0ea5e9;
 }
 
-.btn-action.green{
-    background:#16a34a;
-}
-
 .btn-action.red{
     background:#dc2626;
 }
 
-.btn-action.orange{
-    background:#fb923c;
-}
-
 .finished-info{
-    background:rgba(15,23,42,.05);
+    background:#f3f4f6;
     color:#374151;
-    padding:10px 14px;
-    border-radius:14px;
+    padding:8px 10px;
+    border-radius:999px;
+    font-size:11px;
     font-weight:900;
+    white-space:nowrap;
 }
 
 .modal-detail{
@@ -537,7 +829,7 @@
 
 .modal-box{
     background:white;
-    max-width:760px;
+    max-width:780px;
     margin:30px auto;
     border-radius:26px;
     padding:22px;
@@ -557,7 +849,7 @@
 .modal-head h3{
     font-size:22px;
     font-weight:900;
-    color:var(--primary-color);
+    color:var(--primary-color, var(--primary, #f97316));
     margin:0;
 }
 
@@ -584,10 +876,38 @@
     gap:12px;
 }
 
-.detail-grid div{
+.detail-grid div,
+.address-box,
+.commission-grid div{
     background:rgba(15,23,42,.04);
     border-radius:16px;
     padding:12px;
+}
+
+.detail-grid small,
+.address-box span,
+.commission-grid span{
+    display:block;
+    color:#6b7280;
+    font-size:12px;
+    font-weight:800;
+    margin-bottom:5px;
+}
+
+.detail-grid b,
+.commission-grid b{
+    color:#111827;
+    font-weight:900;
+}
+
+.address-box{
+    margin-bottom:10px;
+}
+
+.address-box p{
+    margin:0;
+    font-weight:800;
+    line-height:1.5;
 }
 
 .price-box{
@@ -599,16 +919,57 @@
 .price-box div{
     display:flex;
     justify-content:space-between;
+    gap:12px;
     background:rgba(15,23,42,.04);
     border-radius:14px;
     padding:12px;
 }
 
 .price-box .grand-total{
-    background:rgba(15,23,42,.06);
-    color:var(--primary-color);
+    background:linear-gradient(135deg,#16a34a,#22c55e);
+    color:white;
     font-size:18px;
     font-weight:900;
+}
+
+.price-box .grand-total span,
+.price-box .grand-total b{
+    color:white;
+}
+
+.text-green{
+    color:#16a34a !important;
+}
+
+.text-red{
+    color:#dc2626 !important;
+}
+
+.commission-box{
+    background:#fff7ed;
+    border-left:6px solid var(--primary-color, var(--primary, #f97316));
+    border-radius:18px;
+    padding:14px;
+}
+
+.commission-box h4{
+    margin:0 0 12px;
+    color:var(--primary-color, var(--primary, #f97316));
+    font-size:18px;
+    font-weight:900;
+}
+
+.commission-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+}
+
+.commission-note{
+    margin:12px 0 0;
+    color:#9a3412;
+    font-weight:800;
+    font-size:13px;
 }
 
 .item-list{
@@ -618,19 +979,30 @@
 .item-row{
     display:flex;
     justify-content:space-between;
+    gap:12px;
     background:rgba(15,23,42,.04);
     padding:12px;
     border-radius:14px;
     margin-bottom:8px;
 }
 
-.empty-box{
+.empty-box,
+.empty-mini{
     background:white;
-    color:var(--primary-color);
+    color:var(--primary-color, var(--primary, #f97316));
     border-radius:20px;
     padding:20px;
     font-weight:900;
+    text-align:center;
+}
+
+.empty-box{
     box-shadow:0 12px 28px rgba(15,23,42,.07);
+}
+
+.empty-mini{
+    background:#f8fafc;
+    box-shadow:none;
 }
 
 .cancel-box{
@@ -648,15 +1020,19 @@ hr{
     margin:18px 0;
 }
 
-@media(max-width:1000px){
-    .order-info-grid{
-        grid-template-columns:repeat(2,1fr);
+@media(max-width:900px){
+    .filter-input,
+    .filter-select,
+    .filter-btn,
+    .reset-btn{
+        width:100%;
+        min-width:100%;
+        text-align:center;
     }
 }
 
 @media(max-width:700px){
-    .page-head,
-    .order-top{
+    .page-head{
         flex-direction:column;
         align-items:flex-start;
     }
@@ -666,30 +1042,120 @@ hr{
         text-align:center;
     }
 
-    .filter-input,
-    .filter-select,
-    .filter-btn,
-    .reset-btn{
-        width:100%;
-        min-width:100%;
-        text-align:center;
-    }
-
-    .order-info-grid,
-    .detail-grid{
+    .detail-grid,
+    .commission-grid{
         grid-template-columns:1fr;
     }
 
-    .assign-form,
-    .driver-select,
-    .btn-action{
-        width:100%;
+    .modal-detail{
+        padding:14px;
     }
 
-    .btn-action{
-        text-align:center;
+    .modal-box{
+        margin:12px auto;
+        padding:18px;
     }
 }
+
+.receipt-modal{
+    max-width:820px;
+}
+
+.item-table,
+.commission-table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:18px;
+    overflow:hidden;
+}
+
+.item-table th{
+    background:#fff7ed;
+    color:var(--primary-color, var(--primary, #f97316));
+    padding:12px;
+    font-size:12px;
+    font-weight:900;
+    text-align:left;
+}
+
+.item-table td,
+.commission-table td{
+    padding:12px;
+    border-bottom:1px solid #f1f5f9;
+}
+
+.item-table tfoot td{
+    font-weight:900;
+}
+
+.item-table .grand-row td{
+    background:#16a34a;
+    color:white;
+    font-size:15px;
+    font-weight:900;
+}
+
+.item-table .voucher-row td{
+    color:#16a34a;
+    font-weight:900;
+}
+
+.text-center{
+    text-align:center;
+}
+
+.text-right{
+    text-align:right;
+}
+
+.commission-table{
+    border-radius:16px;
+}
+
+.commission-table td:first-child{
+    color:#475569;
+    font-weight:700;
+}
+
+.commission-table td:last-child{
+    text-align:right;
+    font-weight:900;
+    color:#111827;
+}
+
+.commission-table .divider td{
+    padding:0;
+    height:10px;
+    background:#f8fafc;
+    border:none;
+}
+
+.commission-table .minus td{
+    color:#dc2626;
+    font-weight:900;
+}
+
+.commission-table .total td{
+    background:#fff7ed;
+    color:#ea580c;
+    font-size:15px;
+    font-weight:900;
+}
+
+.commission-table .success td{
+    background:#ecfdf5;
+    color:#16a34a;
+    font-size:15px;
+    font-weight:900;
+}
+
+.modal-box h4{
+    margin:14px 0 10px;
+    color:var(--primary-color, var(--primary, #f97316));
+    font-weight:900;
+}
+
 </style>
 
 <script>

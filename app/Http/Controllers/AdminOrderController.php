@@ -16,6 +16,7 @@ class AdminOrderController extends Controller
             'user',
             'driver.user',
             'restaurant',
+            'commissionTransaction',
         ])
         ->whereNotIn('status', ['completed', 'cancelled'])
         ->latest()
@@ -24,15 +25,41 @@ class AdminOrderController extends Controller
     return view('admin.orders.index', compact('orders'));
 }
 
-public function history()
+public function history(Request $request)
 {
+    $search = $request->search;
+
     $orders = Order::with([
             'items.food',
             'user',
             'driver.user',
             'restaurant',
+            'commissionTransaction',
         ])
-        ->whereIn('status', ['completed', 'cancelled'])
+        ->whereIn('status', ['completed','cancelled'])
+
+        ->when($search, function ($q) use ($search) {
+
+            $q->where(function ($query) use ($search) {
+
+                $query->where('order_number', 'like', "%{$search}%")
+
+                ->orWhereHas('user', function ($u) use ($search) {
+                    $u->where('name', 'like', "%{$search}%");
+                })
+
+                ->orWhereHas('driver.user', function ($d) use ($search) {
+                    $d->where('name', 'like', "%{$search}%");
+                })
+
+                ->orWhereHas('restaurant', function ($r) use ($search) {
+                    $r->where('name', 'like', "%{$search}%");
+                });
+
+            });
+
+        })
+
         ->latest()
         ->get();
 

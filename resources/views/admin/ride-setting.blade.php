@@ -7,12 +7,6 @@
     <form method="POST" action="/admin/ride-setting">
         @csrf
 
-      @if(session('success'))
-<div id="toast-success" class="toast-success">
-    ✅ {{ session('success') }}
-</div>
-@endif
-
         <div class="ride-grid">
 
             <div class="ride-box">
@@ -23,19 +17,19 @@
                 <div class="form-group">
                     <label>Biaya Awal</label>
                     <input type="text" name="base_fee" class="ride-input"
-                           value="{{ old('base_fee', $setting->base_fee ?? 5000) }}">
+                          value="{{ old('base_fee', (int)($setting->base_fee ?? 5000)) }}">
                 </div>
 
                 <div class="form-group">
                     <label>Biaya Per KM</label>
                     <input type="text" name="per_km_fee" class="ride-input"
-                           value="{{ old('per_km_fee', $setting->per_km_fee ?? 2500) }}">
+                           value="{{ old('per_km_fee', (int)($setting->per_km_fee ?? 2500)) }}">
                 </div>
 
                 <div class="form-group">
                     <label>Minimal Tarif</label>
                     <input type="text" name="minimum_fee" class="ride-input"
-                           value="{{ old('minimum_fee', $setting->minimum_fee ?? 8000) }}">
+                           value="{{ old('minimum_fee', (int)($setting->minimum_fee ?? 8000)) }}">
                 </div>
             </div>
 
@@ -47,19 +41,19 @@
                 <div class="form-group">
                     <label>Biaya Awal</label>
                     <input type="text" name="car_base_fee" class="ride-input"
-                           value="{{ old('car_base_fee', $setting->car_base_fee ?? 10000) }}">
+                           value="{{ old('car_base_fee', (int)($setting->car_base_fee ?? 10000)) }}">
                 </div>
 
                 <div class="form-group">
                     <label>Biaya Per KM</label>
                     <input type="text" name="car_per_km_fee" class="ride-input"
-                           value="{{ old('car_per_km_fee', $setting->car_per_km_fee ?? 4000) }}">
+                           value="{{ old('car_per_km_fee', (int)($setting->car_per_km_fee ?? 4000)) }}">
                 </div>
 
                 <div class="form-group">
                     <label>Minimal Tarif</label>
                     <input type="text" name="car_minimum_fee" class="ride-input"
-                           value="{{ old('car_minimum_fee', $setting->car_minimum_fee ?? 15000) }}">
+                           value="{{ old('car_minimum_fee', (int)($setting->car_minimum_fee ?? 15000)) }}">
                 </div>
             </div>
 

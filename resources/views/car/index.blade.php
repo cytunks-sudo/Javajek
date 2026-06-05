@@ -27,7 +27,7 @@
             <div id="map"></div>
         </div>
 
-        <form method="POST" action="{{ route('car.calculate') }}" class="car-form">
+        <form method="POST" action="{{ route('car.calculate') }}" class="car-form" id="carForm">
             @csrf
 
             <input type="hidden" name="pickup_latitude" id="pickup_latitude">
@@ -53,8 +53,25 @@
                           required></textarea>
             </div>
 
+            <div class="fare-preview">
+                <div class="fare-title">
+                    <span>💰 Estimasi Tarif</span>
+                    <small>Tarif final sebelum voucher</small>
+                </div>
+
+                <div class="fare-row">
+                    <span>Jarak</span>
+                    <b id="previewDistance">-</b>
+                </div>
+
+                <div class="fare-row">
+                    <span>Tarif Mobil</span>
+                    <b id="previewFare">Pilih tujuan dulu</b>
+                </div>
+            </div>
+
             <button type="submit" class="car-submit">
-                Hitung Tarif Mobil
+                Lanjutkan Pesanan
             </button>
         </form>
 
@@ -179,6 +196,56 @@
     box-shadow:0 0 0 4px rgba(15,23,42,.06);
 }
 
+.fare-preview{
+    margin-top:2px;
+    background:#f8fafc;
+    border:2px dashed rgba(15,23,42,.08);
+    border-radius:22px;
+    padding:16px;
+}
+
+.fare-title{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:8px;
+}
+
+.fare-title span{
+    color:var(--primary);
+    font-weight:900;
+}
+
+.fare-title small{
+    color:#6b7280;
+    font-size:12px;
+    font-weight:700;
+}
+
+.fare-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px dashed rgba(15,23,42,.08);
+}
+
+.fare-row:last-child{
+    border-bottom:none;
+}
+
+.fare-row span{
+    color:#6b7280;
+    font-weight:800;
+}
+
+.fare-row b{
+    color:#111827;
+    font-size:18px;
+    font-weight:900;
+}
+
 .car-submit{
     width:100%;
     border:none;
@@ -213,6 +280,10 @@
     #map{
         height:350px;
     }
+
+    .fare-title{
+        flex-direction:column;
+    }
 }
 </style>
 
@@ -222,6 +293,10 @@ document.addEventListener('DOMContentLoaded', function () {
     let defaultLat = -6.5345831;
     let defaultLng = 111.0390329;
     let mode = 'pickup';
+
+    let baseFee = 10000;
+    let perKmFee = 4000;
+    let minimumFee = 15000;
 
     let themeColor = getComputedStyle(document.documentElement)
         .getPropertyValue('--primary')
@@ -244,6 +319,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let destinationMarker = null;
     let routeControl = null;
+
+    function formatRupiah(number) {
+        return 'Rp ' + Math.round(number).toLocaleString('id-ID');
+    }
+
+    function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    }
+
+    function roundUp500(amount) {
+        return Math.ceil(amount / 500) * 500;
+    }
+
+    function updateFarePreview() {
+        let pickupLat = document.getElementById('pickup_latitude').value;
+        let pickupLng = document.getElementById('pickup_longitude').value;
+        let destLat = document.getElementById('destination_latitude').value;
+        let destLng = document.getElementById('destination_longitude').value;
+
+        let distanceText = document.getElementById('previewDistance');
+        let fareText = document.getElementById('previewFare');
+
+        if (!pickupLat || !pickupLng || !destLat || !destLng) {
+            distanceText.innerText = '-';
+            fareText.innerText = 'Pilih tujuan dulu';
+            return;
+        }
+
+        let distanceKm = calculateDistanceKm(
+            parseFloat(pickupLat),
+            parseFloat(pickupLng),
+            parseFloat(destLat),
+            parseFloat(destLng)
+        );
+
+        let fare = baseFee + (distanceKm * perKmFee);
+        fare = Math.max(minimumFee, fare);
+        fare = roundUp500(fare);
+
+        distanceText.innerText = distanceKm.toFixed(1) + ' km';
+        fareText.innerText = formatRupiah(fare);
+    }
 
     async function getAddress(lat, lng, targetId) {
         let input = document.getElementById(targetId);
@@ -273,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let destLng = document.getElementById('destination_longitude').value;
 
         if (!pickupLat || !pickupLng || !destLat || !destLng) {
+            updateFarePreview();
             return;
         }
 
@@ -303,6 +434,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return null;
             }
         }).addTo(map);
+
+        updateFarePreview();
     }
 
     function setPickup(lat, lng) {
@@ -360,6 +493,16 @@ document.addEventListener('DOMContentLoaded', function () {
         mode = 'destination';
         this.classList.add('active');
         document.getElementById('pickupBtn').classList.remove('active');
+    });
+
+    document.getElementById('carForm').addEventListener('submit', function (e) {
+        let destLat = document.getElementById('destination_latitude').value;
+        let destLng = document.getElementById('destination_longitude').value;
+
+        if (!destLat || !destLng) {
+            e.preventDefault();
+            alert('Silakan pilih titik tujuan terlebih dahulu.');
+        }
     });
 
     if (navigator.geolocation) {
