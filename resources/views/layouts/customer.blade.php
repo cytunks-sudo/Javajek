@@ -1,14 +1,3 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>JavaJek Food</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 @php
     $appSetting = \App\Models\AppSetting::first();
@@ -20,8 +9,29 @@
         ? asset('storage/'.$appSetting->customer_logo)
         : asset('images/logo-javajek.png');
 
+    $favicon = !empty($appSetting->favicon)
+        ? asset('storage/'.$appSetting->favicon)
+        : asset('favicon.png');
+
     $appName = $appSetting->app_name ?? 'JavaJek';
 @endphp
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{{ $appName }}</title>
+
+    <link rel="icon" type="image/png" href="{{ $favicon }}?v={{ optional($appSetting->updated_at)->timestamp }}">
+<link rel="shortcut icon" href="{{ $favicon }}?v={{ optional($appSetting->updated_at)->timestamp }}">
+<link rel="apple-touch-icon" href="{{ $favicon }}?v={{ optional($appSetting->updated_at)->timestamp }}">
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
 :root{

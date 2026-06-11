@@ -3,25 +3,34 @@
 
     $primaryColor = $appSetting->primary_color ?? '#f97316';
     $secondaryColor = $appSetting->secondary_color ?? '#fb923c';
-    $appName = $appSetting->app_name ?? 'JavaJek';
 
-    $logo = match ($pageTitle ?? '') {
-        'Driver' => $appSetting?->driver_logo,
-        'Merchant' => $appSetting?->merchant_logo,
-        default => $appSetting?->customer_logo,
-    };
-
-    $logoUrl = $logo
-        ? asset('storage/'.$logo)
+    $appLogo = !empty($appSetting->customer_logo)
+        ? asset('storage/'.$appSetting->customer_logo)
         : asset('images/logo-javajek.png');
+
+    $favicon = !empty($appSetting->favicon)
+        ? asset('storage/'.$appSetting->favicon)
+        : asset('favicon.png');
+
+    $faviconVersion = optional($appSetting->updated_at)->timestamp ?? time();
+
+    $appName = $appSetting->app_name ?? 'JavaJek';
 @endphp
+
 
 <!DOCTYPE html>
 <html lang="id">
+    
 <head>
     <meta charset="UTF-8">
-    <title>{{ $title ?? $appName }}</title>
+   
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{{ $appName }}</title>
+
+   <link rel="icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
+<link rel="shortcut icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
+<link rel="apple-touch-icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -232,10 +241,10 @@
     </a>
 
     <div class="app-title-box">
-        <img src="{{ $logoUrl }}"
-             class="app-logo"
-             alt="{{ $pageTitle ?? $appName }}">
-
+        <img src="{{ $logoUrl ?? $appLogo }}"
+     class="app-logo"
+     alt="{{ $pageTitle ?? $appName }}">
+     
         <span class="app-title">
             {{ $pageTitle ?? $appName }}
         </span>

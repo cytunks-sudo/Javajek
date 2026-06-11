@@ -126,38 +126,41 @@ public function foods()
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required',
-            'address' => 'required',
-            'latitude' => 'required',
-            'longitude' => 'required',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+{
+    $request->validate([
+        'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        'name' => 'required|string|max:255',
+        'category' => 'required|string|max:255',
+        'open_time' => 'nullable',
+        'close_time' => 'nullable',
+        'address' => 'required|string',
+        'latitude' => 'required',
+        'longitude' => 'required',
+    ]);
 
-        $photoPath = null;
+    $restaurant = new Restaurant();
+    $restaurant->owner_id = Auth::id();
+    $restaurant->name = $request->name;
+    $restaurant->category = $request->category;
+    $restaurant->address = $request->address;
+    $restaurant->phone = Auth::user()->phone ?? null;
+    $restaurant->open_time = $request->open_time;
+    $restaurant->close_time = $request->close_time;
+    $restaurant->latitude = $request->latitude;
+    $restaurant->longitude = $request->longitude;
+    $restaurant->status = 'pending';
+    $restaurant->manual_closed = 0;
 
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('merchants', 'public');
-        }
-
-        Restaurant::create([
-            'owner_id' => Auth::id(),
-            'name' => $request->name,
-            'address' => $request->address,
-            'photo' => $photoPath,
-            'category' => $request->category,
-            'open_time' => $request->open_time,
-            'close_time' => $request->close_time,
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-            'status' => 'pending',
-        ]);
-
-        return redirect('/merchant')
-            ->with('success', 'Merchant berhasil didaftarkan. Menunggu persetujuan admin.');
+    if ($request->hasFile('photo')) {
+        $restaurant->photo = $request->file('photo')->store('restaurants', 'public');
     }
 
+    $restaurant->save();
+
+return redirect('/merchant')
+    ->with('success', 'Pendaftaran merchant berhasil dikirim. Menunggu persetujuan admin.');
+    
+    }
     public function acceptOrder($id)
     {
         $order = Order::with('driver')

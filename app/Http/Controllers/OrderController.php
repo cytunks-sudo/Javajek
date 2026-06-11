@@ -134,11 +134,30 @@ class OrderController extends Controller
 
         $firstOrderId = null;
 
+        $grandTotalBefore = $checkout['grand_total_before'] ?? 0;
+        $totalVoucherDiscount = $checkout['voucher_discount'] ?? 0;
+
         foreach ($checkout['merchant_summaries'] as $summary) {
+            $merchantTotalBefore = $summary['merchant_total'] ?? 0;
+
+            $merchantVoucherDiscount = 0;
+
+            if ($grandTotalBefore > 0 && $totalVoucherDiscount > 0) {
+                $merchantVoucherDiscount = round(
+                    $totalVoucherDiscount * ($merchantTotalBefore / $grandTotalBefore)
+                );
+            }
+
+            $merchantFinalTotal = max(0, $merchantTotalBefore - $merchantVoucherDiscount);
+
             $order = new Order();
 
             $order->order_number = Order::generateOrderNumber('food');
             $order->user_id = Auth::id();
+
+            if (Schema::hasColumn('orders', 'order_type')) {
+                $order->order_type = 'food';
+            }
 
             if (Schema::hasColumn('orders', 'restaurant_id')) {
                 $order->restaurant_id = $summary['restaurant_id'];
@@ -149,7 +168,11 @@ class OrderController extends Controller
             }
 
             if (Schema::hasColumn('orders', 'total')) {
-                $order->total = $summary['merchant_total'];
+                $order->total = $merchantFinalTotal;
+            }
+
+            if (Schema::hasColumn('orders', 'grand_total')) {
+                $order->grand_total = $merchantFinalTotal;
             }
 
             if (Schema::hasColumn('orders', 'voucher_id')) {
@@ -161,7 +184,7 @@ class OrderController extends Controller
             }
 
             if (Schema::hasColumn('orders', 'voucher_discount')) {
-                $order->voucher_discount = $checkout['voucher_discount'] ?? 0;
+                $order->voucher_discount = $merchantVoucherDiscount;
             }
 
             if (Schema::hasColumn('orders', 'delivery_fee')) {
@@ -484,11 +507,21 @@ class OrderController extends Controller
             return redirect('/ojek');
         }
 
+        $finalFare = $ojek['fare'] ?? 0;
+
         $order = new Order();
 
         $order->order_number = Order::generateOrderNumber('ojek');
         $order->user_id = auth()->id();
-        $order->total = $ojek['fare'];
+
+        if (Schema::hasColumn('orders', 'total')) {
+            $order->total = $finalFare;
+        }
+
+        if (Schema::hasColumn('orders', 'grand_total')) {
+            $order->grand_total = $finalFare;
+        }
+
         $order->status = 'searching_driver';
         $order->merchant_status = 'accepted';
 
@@ -642,11 +675,21 @@ class OrderController extends Controller
             return redirect('/car');
         }
 
+        $finalFare = $car['fare'] ?? 0;
+
         $order = new Order();
 
         $order->order_number = Order::generateOrderNumber('car');
         $order->user_id = auth()->id();
-        $order->total = $car['fare'];
+
+        if (Schema::hasColumn('orders', 'total')) {
+            $order->total = $finalFare;
+        }
+
+        if (Schema::hasColumn('orders', 'grand_total')) {
+            $order->grand_total = $finalFare;
+        }
+
         $order->status = 'searching_driver';
         $order->merchant_status = 'accepted';
         $order->driver_status = 'pending';

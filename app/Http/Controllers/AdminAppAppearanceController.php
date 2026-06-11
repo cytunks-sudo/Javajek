@@ -42,6 +42,7 @@ class AdminAppAppearanceController extends Controller
             'customer_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'driver_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'merchant_logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'favicon' => 'nullable|file|mimes:jpg,jpeg,png,webp,ico|max:2048',
             'driver_map_icon' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'home_banner' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ]);
@@ -104,29 +105,27 @@ class AdminAppAppearanceController extends Controller
             $data['car_driver_commission_percent'] = $request->car_driver_commission_percent ?? 0;
         }
 
-        foreach ([
-            'login_logo',
-            'customer_logo',
-            'driver_logo',
-            'merchant_logo',
-            'driver_map_icon',
-            'home_banner',
-        ] as $field) {
-            if (
-                Schema::hasColumn('app_settings', $field) &&
-                $request->hasFile($field)
-            ) {
-                $data[$field] = $request
-                    ->file($field)
-                    ->store('app-settings', 'public');
-            }
-        }
+foreach ([
+    'login_logo',
+    'customer_logo',
+    'driver_logo',
+    'merchant_logo',
+    'favicon',
+    'driver_map_icon',
+    'home_banner',
+] as $field) {
+    if (
+        Schema::hasColumn('app_settings', $field) &&
+        $request->hasFile($field)
+    ) {
+        $data[$field] = $request
+            ->file($field)
+            ->store('app-settings', 'public');
+    }
+}
 
         $setting->update($data);
 
-        return back()->with(
-            'success',
-            'Tampilan aplikasi berhasil disimpan.'
-        );
+        return back()->with('success', 'Tampilan aplikasi berhasil disimpan.');
     }
 }

@@ -17,112 +17,120 @@ use App\Models\OrderRating;
 class DriverController extends Controller
 {
     public function dashboard()
-    {
-        $driver = Driver::where('user_id', Auth::id())->first();
+{
+    $driver = Driver::where('user_id', Auth::id())->first();
 
-        if (!$driver) {
-            return redirect('/apply-driver');
-        }
-
-        if ($driver->approval_status == 'pending') {
-            return view('driver.pending', compact('driver'));
-        }
-
-        if ($driver->approval_status == 'rejected') {
-            return view('driver.rejected', compact('driver'));
-        }
-
-        $orders = Order::where(function($q) use ($driver) {
-        $q->where('driver_id', $driver->id)
-          ->orWhere(function($x) {
-              $x->whereNull('driver_id')
-                ->where('status', 'searching_driver');
-          });
-    })
-    ->whereNotIn('status', ['completed', 'cancelled'])
-    ->latest()
-    ->get();
-
-    $setting = \App\Models\AppSetting::first();
-
-$minimumBalance = $setting->driver_min_balance ?? 0;
-
-$driverBalance = $driver->balance ?? 0;
-
-$walletWarning = null;
-
-if ($driverBalance < 0) {
-
-    $walletWarning =
-        'Saldo Anda minus Rp '.number_format(abs($driverBalance)).
-        '. Silakan topup saldo ke admin agar dapat menerima order kembali.';
-
-}
-elseif ($driverBalance < $minimumBalance) {
-
-    $walletWarning =
-        'Saldo Anda kurang dari minimum Rp '.number_format($minimumBalance).
-        '. Silakan topup saldo agar bisa online.';
-}
-
-$completedDriverOrders = \App\Models\Order::where('driver_id', $driver->id)
-    ->where('status', 'completed');
-
-$driverIncomeToday = (clone $completedDriverOrders)
-    ->whereDate('updated_at', today())
-    ->get()
-    ->sum(function($order){
-        return ($order->grand_total ?? $order->total ?? 0)
-            - ($order->admin_commission_amount ?? 0);
-    });
-
-$driverIncomeMonth = (clone $completedDriverOrders)
-    ->whereMonth('updated_at', now()->month)
-    ->whereYear('updated_at', now()->year)
-    ->get()
-    ->sum(function($order){
-        return ($order->grand_total ?? $order->total ?? 0)
-            - ($order->admin_commission_amount ?? 0);
-    });
-
-$driverCompletedOrders = (clone $completedDriverOrders)->count();
-
-$driverCommissionTotal = \App\Models\DriverWalletTransaction::where('driver_id', $driver->id)
-    ->where('type', 'commission')
-    ->sum('amount');
-
-$driverCommissionTotal = abs($driverCommissionTotal);
-
-$driverAverageRating = OrderRating::where('driver_id', $driver->id)
-    ->whereNotNull('driver_rating')
-    ->avg('driver_rating');
-
-$driverTotalReviews = OrderRating::where('driver_id', $driver->id)
-    ->whereNotNull('driver_rating')
-    ->count();
-
-$driverLatestReviews = OrderRating::with(['customer', 'order'])
-    ->where('driver_id', $driver->id)
-    ->whereNotNull('driver_rating')
-    ->latest()
-    ->limit(5)
-    ->get();
-
-
-        return view('driver.dashboard', compact(
-            'driver', 
-            'orders', 
-            'walletWarning', 
-            'minimumBalance', 
-            'driverIncomeToday', 
-            'driverIncomeMonth', 
-            'driverCompletedOrders', 
-            'driverCommissionTotal',
-            'driverAverageRating',
-            'driverTotalReviews',
-            'driverLatestReviews',
-            ));
+    if (!$driver) {
+        return redirect('/apply-driver');
     }
+
+    if ($driver->approval_status == 'pending') {
+        return view('driver.pending', compact('driver'));
+    }
+
+    if ($driver->approval_status == 'rejected') {
+        return view('driver.rejected', compact('driver'));
+    }
+
+    $setting = AppSetting::first();
+
+    $minimumBalance = $setting->driver_min_balance ?? 0;
+    $driverBalance = $this->driverBalance($driver);
+
+    $walletWarning = null;
+
+    if ($driverBalance < 0) {
+        $walletWarning = 'Saldo Anda minus Rp '.number_format(abs($driverBalance)).
+            '. Silakan topup saldo ke admin agar dapat menerima order kembali.';
+    } elseif ($driverBalance < $minimumBalance) {
+        $walletWarning = 'Saldo Anda kurang dari minimum Rp '.number_format($minimumBalance).
+            '. Silakan topup saldo agar bisa online.';
+    }
+
+    $lowBalance = $this->forceOfflineIfLowBalance($driver);
+
+    if ($lowBalance) {
+        $orders = collect();
+    } else {
+        $orders = Order::where(function ($q) use ($driver) {
+                $q->where('driver_id', $driver->id)
+                  ->orWhere(function ($x) {
+                      $x->whereNull('driver_id')
+                        ->where('status', 'searching_driver');
+                  });
+            })
+            ->whereIn('status', [
+                'searching_driver',
+                'waiting_response',
+                'driver_to_merchant',
+                'driver_to_pickup',
+                'driver_to_destination',
+                'dalam_pengiriman',
+            ])
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->latest()
+            ->get();
+    }
+
+    $completedDriverOrders = Order::where('driver_id', $driver->id)
+        ->where('status', 'completed');
+
+    $driverIncomeToday = (clone $completedDriverOrders)
+        ->whereDate('updated_at', today())
+        ->get()
+        ->sum(function ($order) {
+            return ($order->grand_total ?? $order->total ?? 0)
+                - ($order->admin_commission_amount ?? 0);
+        });
+
+    $driverIncomeMonth = (clone $completedDriverOrders)
+        ->whereMonth('updated_at', now()->month)
+        ->whereYear('updated_at', now()->year)
+        ->get()
+        ->sum(function ($order) {
+            return ($order->grand_total ?? $order->total ?? 0)
+                - ($order->admin_commission_amount ?? 0);
+        });
+
+    $driverCompletedOrders = (clone $completedDriverOrders)->count();
+
+    $driverCommissionTotal = DriverWalletTransaction::where('driver_id', $driver->id)
+        ->where('type', 'commission')
+        ->sum('amount');
+
+    $driverCommissionTotal = abs($driverCommissionTotal);
+
+    $driverAverageRating = OrderRating::where('driver_id', $driver->id)
+        ->whereNotNull('driver_rating')
+        ->avg('driver_rating');
+
+    $driverTotalReviews = OrderRating::where('driver_id', $driver->id)
+        ->whereNotNull('driver_rating')
+        ->count();
+
+    $driverLatestReviews = OrderRating::with(['customer', 'order'])
+        ->where('driver_id', $driver->id)
+        ->whereNotNull('driver_rating')
+        ->latest()
+        ->limit(5)
+        ->get();
+
+    return view('driver.dashboard', compact(
+        'driver',
+        'orders',
+        'walletWarning',
+        'minimumBalance',
+        'driverBalance',
+        'driverIncomeToday',
+        'driverIncomeMonth',
+        'driverCompletedOrders',
+        'driverCommissionTotal',
+        'driverAverageRating',
+        'driverTotalReviews',
+        'driverLatestReviews'
+    ));
+}
+
 
 public function history()
 {
@@ -138,12 +146,7 @@ public function history()
 
     public function setStatus($status)
 {
-    $driver = Driver::where('user_id', Auth::id())->first();
-
-    if (!$driver) {
-        return redirect('/driver')
-            ->with('error', 'Data driver tidak ditemukan.');
-    }
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
 
     if (!in_array($status, ['online', 'offline'])) {
         return redirect('/driver')
@@ -156,43 +159,27 @@ public function history()
         now()->lt($driver->penalty_until)
     ) {
         return redirect('/driver')
-            ->with('error', 'Akun driver terkena penalti sampai ' . $driver->penalty_until);
+            ->with('error', 'Akun driver terkena penalti sampai '.$driver->penalty_until);
     }
 
-    $setting = \App\Models\AppSetting::first();
-
-$minimumBalance = $setting->driver_min_balance ?? 0;
-
-if (
-    $status == 'online' &&
-    ($driver->balance ?? 0) < $minimumBalance
-) {
-    return redirect('/driver')
-        ->with(
-            'error',
-            'Saldo driver kurang dari minimum Rp '.number_format($minimumBalance)
-        );
-}
-
     if ($status == 'online') {
+        $balance = $this->driverBalance($driver);
+        $minimum = $this->minimumDriverBalance();
 
-        $setting = \App\Models\AppSetting::first();
+        if ($balance < $minimum) {
+            $driver->status = 'offline';
+            $driver->save();
 
-        $minBalance = $setting->driver_min_balance ?? 0;
-        $driverBalance = $driver->balance ?? 0;
-
-        if ($driverBalance < $minBalance) {
             return redirect('/driver')
                 ->with(
                     'error',
-                    'Saldo tidak mencukupi. Minimal saldo untuk online Rp ' . number_format($minBalance)
+                    'Saldo Anda kurang dari minimum Rp '.number_format($minimum, 0, ',', '.').'. Silakan topup saldo agar bisa online.'
                 );
         }
     }
 
-    $driver->update([
-        'status' => $status,
-    ]);
+    $driver->status = $status;
+    $driver->save();
 
     return redirect('/driver')
         ->with(
@@ -205,8 +192,11 @@ if (
 
 public function activeLocations()
 {
+    $minimum = $this->minimumDriverBalance();
+
     $drivers = Driver::with(['user', 'activeVehicles'])
         ->whereIn('status', ['online', 'busy'])
+        ->where('balance', '>=', $minimum)
         ->whereNotNull('latitude')
         ->whereNotNull('longitude')
         ->get();
@@ -227,7 +217,6 @@ public function activeLocations()
         })->values(),
     ]);
 }
-
 
     public function updateLocation(Request $request)
     {
@@ -359,8 +348,15 @@ public function activeLocations()
             ->lockForUpdate()
             ->first();
 
-        $before = (float) ($freshDriver->balance ?? 0);
-        $after = $before - $commissionAmount;
+            $voucherDiscount = (float) ($order->voucher_discount ?? 0);
+
+
+            $before = (float) ($freshDriver->balance ?? 0);
+
+// voucher menambah saldo driver, lalu komisi admin dipotong
+
+            $after = $before + $voucherDiscount - $commissionAmount;
+
 
         $order->update([
             'status' => $status
@@ -373,18 +369,40 @@ public function activeLocations()
             'status' => $after >= $minimumBalance ? 'online' : 'offline',
         ]);
 
-        if ($commissionAmount > 0) {
-            DriverWalletTransaction::create([
-                'driver_id' => $freshDriver->id,
-                'type' => 'commission',
-                'amount' => -$commissionAmount,
-                'balance_before' => $before,
-                'balance_after' => $after,
-                'order_id' => $order->id,
-                'description' => 'Komisi admin ' . strtoupper($orderType) . ' order ' . ($order->order_number ?? '#'.$order->id),
-                'created_by' => null,
-            ]);
-        }
+        $runningBalance = $before;
+
+if ($voucherDiscount > 0) {
+    $afterVoucher = $runningBalance + $voucherDiscount;
+
+    DriverWalletTransaction::create([
+        'driver_id' => $freshDriver->id,
+        'type' => 'topup',
+        'amount' => $voucherDiscount,
+        'balance_before' => $runningBalance,
+        'balance_after' => $afterVoucher,
+        'order_id' => $order->id,
+        'description' => 'Pengganti voucher order ' . ($order->order_number ?? '#'.$order->id),
+        'created_by' => null,
+    ]);
+
+    $runningBalance = $afterVoucher;
+}
+
+if ($commissionAmount > 0) {
+    $afterCommission = $runningBalance - $commissionAmount;
+
+    DriverWalletTransaction::create([
+        'driver_id' => $freshDriver->id,
+        'type' => 'commission',
+        'amount' => -$commissionAmount,
+        'balance_before' => $runningBalance,
+        'balance_after' => $afterCommission,
+        'order_id' => $order->id,
+        'description' => 'Komisi admin ' . strtoupper($orderType) . ' order ' . ($order->order_number ?? '#'.$order->id),
+        'created_by' => null,
+    ]);
+}
+
     });
 
     return redirect('/driver')
@@ -394,70 +412,95 @@ public function acceptOrder($id)
 {
     $driver = Driver::where('user_id', Auth::id())->firstOrFail();
 
+    $balance = $this->driverBalance($driver);
+    $minimum = $this->minimumDriverBalance();
+
+    if ($balance < $minimum) {
+        $driver->status = 'offline';
+        $driver->save();
+
+        return redirect('/driver')
+            ->with(
+                'error',
+                'Saldo Anda kurang dari minimum Rp '.number_format($minimum, 0, ',', '.').'. Anda tidak bisa menerima order.'
+            );
+    }
+
     $order = Order::where('id', $id)
-        ->where(function($q) use ($driver) {
+        ->where(function ($q) use ($driver) {
             $q->where('driver_id', $driver->id)
               ->orWhereNull('driver_id');
         })
         ->firstOrFail();
 
     if ($order->status == 'cancelled') {
-        return redirect('/driver')->with('error', 'Pesanan sudah dibatalkan.');
+        return redirect('/driver')
+            ->with('error', 'Pesanan sudah dibatalkan.');
     }
 
-    if (in_array($order->order_type, ['ojek', 'car'])) {
-        $nextStatus = 'driver_to_pickup';
-    } else {
-        $nextStatus = 'driver_to_merchant';
+    if (in_array($order->status, ['completed', 'cancelled'])) {
+        return redirect('/driver')
+            ->with('error', 'Pesanan sudah tidak aktif.');
     }
+
+    $nextStatus = in_array($order->order_type, ['ojek', 'car'])
+        ? 'driver_to_pickup'
+        : 'driver_to_merchant';
 
     $order->update([
         'driver_id' => $driver->id,
         'driver_status' => 'accepted',
-        'merchant_status' => 'accepted',
+        'merchant_status' => $order->order_type == 'food'
+            ? ($order->merchant_status ?? 'pending')
+            : 'accepted',
         'status' => $nextStatus,
     ]);
 
-    $driver->update([
-        'status' => 'busy',
-    ]);
+    $driver->status = 'busy';
+    $driver->save();
 
-    return redirect('/driver')->with('success', 'Pesanan diterima.');
+    return redirect('/driver')
+        ->with('success', 'Pesanan diterima.');
 }
 
+
     public function rejectOrder($id)
-    {
-        $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+{
+    $driver = Driver::where('user_id', Auth::id())->firstOrFail();
 
-        $order = Order::with('restaurant')
-            ->where('id', $id)
-            ->where('driver_id', $driver->id)
-            ->firstOrFail();
+    $order = Order::with('restaurant')
+        ->where('id', $id)
+        ->where('driver_id', $driver->id)
+        ->firstOrFail();
 
-        $driver->update([
-            'status' => 'online',
+    $minimum = $this->minimumDriverBalance();
+    $balance = $this->driverBalance($driver);
+
+    $driver->status = $balance >= $minimum ? 'online' : 'offline';
+    $driver->save();
+
+    $newDriver = $this->findNearestDriver($order->restaurant, $driver->id, 5);
+
+    if ($newDriver) {
+        $order->update([
+            'driver_id' => $newDriver->id,
+            'driver_status' => 'pending',
+            'status' => 'waiting_response',
+            'driver_reject_count' => ($order->driver_reject_count ?? 0) + 1,
         ]);
-
-        $newDriver = $this->findNearestDriver($order->restaurant, $driver->id, 5);
-
-        if ($newDriver) {
-            $order->update([
-                'driver_id' => $newDriver->id,
-                'driver_status' => 'pending',
-                'status' => 'waiting_response',
-                'driver_reject_count' => $order->driver_reject_count + 1,
-            ]);
-        } else {
-            $order->update([
-                'driver_id' => null,
-                'driver_status' => 'rejected',
-                'status' => 'searching_driver',
-                'driver_reject_count' => $order->driver_reject_count + 1,
-            ]);
-        }
-
-        return redirect('/driver')->with('success', 'Pesanan ditolak. Sistem mencari driver lain.');
+    } else {
+        $order->update([
+            'driver_id' => null,
+            'driver_status' => 'rejected',
+            'status' => 'searching_driver',
+            'driver_reject_count' => ($order->driver_reject_count ?? 0) + 1,
+        ]);
     }
+
+    return redirect('/driver')
+        ->with('success', 'Pesanan ditolak. Sistem mencari driver lain.');
+}
+
 
     private function findNearestDriver($restaurant, $excludeDriverId = null, $maxRadiusKm = 5)
     {
@@ -553,35 +596,47 @@ public function updateSettings(Request $request)
         ->with('success', 'Setting driver berhasil diperbarui.');
 }
 
-    public function notifCount()
-    {
-        $driver = Driver::where('user_id', Auth::id())->first();
+public function notifCount()
+{
+    $driver = Driver::where('user_id', Auth::id())->first();
 
-        if (!$driver) {
-            return response()->json([
-                'count' => 0,
-            ]);
-        }
-
-        $count = Order::where(function($q) use ($driver){
-
-        $q->where('driver_id', $driver->id)
-          ->where('driver_status', 'pending')
-
-          ->orWhere(function($x){
-
-                $x->whereNull('driver_id')
-                  ->where('status', 'searching_driver');
-
-          });
-
-    })
-    ->count();
-
+    if (!$driver) {
         return response()->json([
-            'count' => $count,
+            'count' => 0,
         ]);
     }
+
+    if ($this->forceOfflineIfLowBalance($driver)) {
+        return response()->json([
+            'count' => 0,
+        ]);
+    }
+
+    if ($driver->status != 'online') {
+        return response()->json([
+            'count' => 0,
+        ]);
+    }
+
+    $count = Order::where(function ($q) use ($driver) {
+            $q->where(function ($a) use ($driver) {
+                $a->where('driver_id', $driver->id)
+                  ->where('driver_status', 'pending');
+            })
+            ->orWhere(function ($b) {
+                $b->whereNull('driver_id')
+                  ->where('status', 'searching_driver');
+            });
+        })
+        ->whereNotIn('status', ['completed', 'cancelled'])
+        ->count();
+
+    return response()->json([
+        'count' => $count,
+    ]);
+}
+
+
     public function addVehicle(Request $request)
 {
     $driver = Driver::where('user_id', Auth::id())->firstOrFail();
@@ -720,4 +775,33 @@ public function income()
     ));
 }
 
+private function driverBalance($driver)
+{
+    return $driver->wallet_balance
+        ?? $driver->balance
+        ?? $driver->saldo
+        ?? 0;
+}
+
+private function minimumDriverBalance()
+{
+    $setting = \App\Models\AppSetting::first();
+
+    return $setting->driver_min_balance ?? 10000;
+}
+
+private function forceOfflineIfLowBalance($driver)
+{
+    $balance = $this->driverBalance($driver);
+    $minimum = $this->minimumDriverBalance();
+
+    if ($balance < $minimum) {
+        $driver->status = 'offline';
+        $driver->save();
+
+        return true;
+    }
+
+    return false;
+}
 }

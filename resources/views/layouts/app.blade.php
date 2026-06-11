@@ -1,11 +1,32 @@
+@php
+    $appSetting = \App\Models\AppSetting::first();
+
+    $primaryColor = $appSetting->primary_color ?? '#f97316';
+    $secondaryColor = $appSetting->secondary_color ?? '#fb923c';
+
+    $favicon = !empty($appSetting->favicon)
+        ? asset('storage/'.$appSetting->favicon)
+        : asset('favicon.png');
+
+    $faviconVersion = optional($appSetting->updated_at)->timestamp ?? time();
+
+    $appName = $appSetting->app_name ?? 'JavaJek';
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
+
+
+<head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ $appName }}</title>
+
+   <link rel="icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
+<link rel="shortcut icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
+<link rel="apple-touch-icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

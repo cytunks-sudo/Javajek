@@ -25,6 +25,7 @@ class AppSetting extends Model
 'food_driver_commission_percent',
 'ride_driver_commission_percent',
 'car_driver_commission_percent',
+'favicon',
 ];
 
 protected $casts = [

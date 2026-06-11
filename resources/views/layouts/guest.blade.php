@@ -1,8 +1,20 @@
 @php
-    $setting = \App\Models\AppSetting::first();
+    $appSetting = \App\Models\AppSetting::first();
 
-    $primary = $setting->primary_color ?? '#f97316';
-    $secondary = $setting->secondary_color ?? '#fb923c';
+    $primaryColor = $appSetting->primary_color ?? '#f97316';
+    $secondaryColor = $appSetting->secondary_color ?? '#fb923c';
+
+    $loginLogo = !empty($appSetting->login_logo)
+        ? asset('storage/'.$appSetting->login_logo)
+        : asset('images/logo-javajek.png');
+
+    $favicon = !empty($appSetting->favicon)
+        ? asset('storage/'.$appSetting->favicon)
+        : asset('favicon.png');
+
+    $faviconVersion = optional($appSetting->updated_at)->timestamp ?? time();
+
+    $appName = $appSetting->app_name ?? 'JavaJek';
 @endphp
 
 <!DOCTYPE html>
@@ -10,15 +22,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ $appName }}</title>
 
-<title>{{ $setting->app_name ?? 'JavaJek' }}</title>
+<link rel="icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
+<link rel="shortcut icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
+<link rel="apple-touch-icon" href="{{ $favicon }}?v={{ $faviconVersion }}">
 
 @vite(['resources/css/app.css','resources/js/app.js'])
 
 <style>
 :root{
-    --primary: {{ $primary }};
-    --secondary: {{ $secondary }};
+    --primary: {{ $primaryColor }};
+    --secondary: {{ $secondaryColor }};
 }
 
 body{

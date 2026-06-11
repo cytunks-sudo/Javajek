@@ -243,45 +243,45 @@
 
                 @if($isRide)
 
-                    <div class="route-box">
+    <div class="route-box">
 
-                        <div class="address-info">
-                            <small>📍 Titik Jemput</small>
-                            <p>{{ $order->pickup_address ?? '-' }}</p>
-                        </div>
+        <div class="address-info">
+            <small>📍 Titik Jemput</small>
+            <p>{{ $order->pickup_address ?? '-' }}</p>
+        </div>
 
-                        <div class="address-info">
-                            <small>🏁 Titik Tujuan</small>
-                            <p>{{ $order->destination_address ?? '-' }}</p>
-                        </div>
+        <div class="address-info">
+            <small>🏁 Titik Tujuan</small>
+            <p>{{ $order->destination_address ?? '-' }}</p>
+        </div>
 
-                        <div class="map-action-row">
-                            @if($order->pickup_latitude && $order->pickup_longitude)
-                                <a class="btn-mini blue"
-                                   target="_blank"
-                                   href="https://www.google.com/maps/dir/?api=1&destination={{ $order->pickup_latitude }},{{ $order->pickup_longitude }}">
-                                    📍 Buka Titik Jemput
-                                </a>
-                            @endif
+        <div class="map-action-row">
+            @if($order->pickup_latitude && $order->pickup_longitude)
+                <a class="btn-mini blue"
+                   target="_blank"
+                   href="https://www.google.com/maps/dir/?api=1&destination={{ $order->pickup_latitude }},{{ $order->pickup_longitude }}">
+                    📍 Buka Titik Jemput
+                </a>
+            @endif
 
-                            @if($order->destination_latitude && $order->destination_longitude)
-                                <a class="btn-mini green"
-                                   target="_blank"
-                                   href="https://www.google.com/maps/dir/?api=1&destination={{ $order->destination_latitude }},{{ $order->destination_longitude }}">
-                                    🏁 Buka Tujuan
-                                </a>
-                            @endif
-                        </div>
+            @if($order->destination_latitude && $order->destination_longitude)
+                <a class="btn-mini green"
+                   target="_blank"
+                   href="https://www.google.com/maps/dir/?api=1&destination={{ $order->destination_latitude }},{{ $order->destination_longitude }}">
+                    🏁 Buka Tujuan
+                </a>
+            @endif
+        </div>
 
-                        @if($order->distance_km)
-                            <p class="distance-text">
-                                <b>Jarak:</b> {{ number_format($order->distance_km,1) }} km
-                            </p>
-                        @endif
+        @if($order->distance_km)
+            <p class="distance-text">
+                <b>Jarak:</b> {{ number_format($order->distance_km,1) }} km
+            </p>
+        @endif
 
-                    </div>
+    </div>
 
-                @else
+@else
 
                     <div class="route-box">
 
@@ -423,22 +423,100 @@
 
                         <hr>
 
-                        @if($isRide)
+                       @if($isRide)
 
-                            <div class="address-info">
-                                <small>📍 Jemput</small>
-                                <p>{{ $order->pickup_address ?? '-' }}</p>
-                            </div>
+    <div class="address-info">
+        <small>📍 Jemput</small>
+        <p>{{ $order->pickup_address ?? '-' }}</p>
+    </div>
 
-                            <div class="address-info">
-                                <small>🏁 Tujuan</small>
-                                <p>{{ $order->destination_address ?? '-' }}</p>
-                            </div>
+    <div class="address-info">
+        <small>🏁 Tujuan</small>
+        <p>{{ $order->destination_address ?? '-' }}</p>
+    </div>
 
-                            <p><b>Jarak:</b> {{ number_format($order->distance_km ?? 0,1) }} km</p>
-                            <p><b>Tarif:</b> Rp {{ number_format($order->total) }}</p>
+    @php
+        $appSetting = \App\Models\AppSetting::first();
 
-                        @else
+        $rideCommissionPercent = $isCar
+            ? ($appSetting->car_driver_commission_percent ?? 0)
+            : ($appSetting->ride_driver_commission_percent ?? 0);
+
+        $customerPay = ($order->grand_total ?? 0) > 0
+            ? $order->grand_total
+            : ($order->total ?? 0);
+
+        $voucherDiscount = $order->voucher_discount ?? 0;
+
+        $tarifSebelumVoucher = $customerPay + $voucherDiscount;
+
+        $rideCommissionAmount = round(
+            $tarifSebelumVoucher * ($rideCommissionPercent / 100)
+        );
+
+        $driverNetBalanceEffect = $voucherDiscount - $rideCommissionAmount;
+    @endphp
+
+    <div class="driver-commission-box">
+        <h4>
+            @if($isCar)
+                🚗 Rincian Komisi J-Car
+            @else
+                🏍️ Rincian Komisi J-Ride
+            @endif
+        </h4>
+
+        <div class="commission-row">
+            <span>Jarak perjalanan</span>
+            <b>{{ number_format($order->distance_km ?? 0, 1) }} km</b>
+        </div>
+
+        <div class="commission-row">
+            <span>Tarif sebelum voucher</span>
+            <b>Rp {{ number_format($tarifSebelumVoucher) }}</b>
+        </div>
+
+        @if($voucherDiscount > 0)
+            <div class="commission-row voucher">
+                <span>Voucher / Subsidi Admin</span>
+                <b>+ Rp {{ number_format($voucherDiscount) }}</b>
+            </div>
+        @endif
+
+        <div class="commission-row">
+            <span>Total customer bayar</span>
+            <b>Rp {{ number_format($customerPay) }}</b>
+        </div>
+
+        <div class="commission-row">
+            <span>Komisi admin {{ $rideCommissionPercent }}%</span>
+            <b>Rp {{ number_format($rideCommissionAmount) }}</b>
+        </div>
+
+        <div class="commission-row total">
+            <span>Total potong saldo driver</span>
+            <b>Rp {{ number_format($rideCommissionAmount) }}</b>
+        </div>
+
+        @if($voucherDiscount > 0)
+            <div class="commission-row final">
+                <span>Saldo driver ditambah voucher</span>
+                <b>+ Rp {{ number_format($voucherDiscount) }}</b>
+            </div>
+        @endif
+
+        <div class="commission-row net">
+            <span>Efek akhir ke saldo driver</span>
+
+            @if($driverNetBalanceEffect >= 0)
+                <b>+ Rp {{ number_format($driverNetBalanceEffect) }}</b>
+            @else
+                <b>- Rp {{ number_format(abs($driverNetBalanceEffect)) }}</b>
+            @endif
+        </div>
+    </div>
+
+@else
 
                             <div class="address-info">
                                 <small>🏪 Merchant</small>
@@ -482,6 +560,13 @@
         <b>Rp {{ number_format($grandTotal) }}</b>
     </div>
 
+    @if(($order->voucher_discount ?? 0) > 0)
+    <div class="commission-row voucher">
+        <span>Voucher / Subsidi Admin</span>
+        <b>+ Rp {{ number_format($order->voucher_discount ?? 0) }}</b>
+    </div>
+@endif
+
     <div class="commission-row">
         <span>Harga asli merchant</span>
         <b>Rp {{ number_format($foodOriginalTotal) }}</b>
@@ -503,9 +588,16 @@
     </div>
 
     <div class="commission-row total">
-        <span>Total potong saldo driver</span>
-        <b>Rp {{ number_format($driverCutTotal) }}</b>
+    <span>Total potong saldo driver</span>
+    <b>Rp {{ number_format($driverCutTotal) }}</b>
+</div>
+
+@if(($order->voucher_discount ?? 0) > 0)
+    <div class="commission-row final">
+        <span>Saldo driver ditambah voucher</span>
+        <b>+ Rp {{ number_format($order->voucher_discount ?? 0) }}</b>
     </div>
+@endif
 </div>
 
                             <hr>
@@ -787,6 +879,30 @@
     }
 }
 
+.commission-row.voucher{
+    background:#dcfce7;
+}
+
+.commission-row.voucher b{
+    color:#16a34a;
+}
+
+.commission-row.final{
+    background:#dbeafe;
+}
+
+.commission-row.final b{
+    color:#2563eb;
+}
+
+.commission-row.net{
+    background:#f3f4f6;
+}
+
+.commission-row.net b{
+    color:#111827;
+}
+
 .modal-route-box{
     margin:14px 0;
     background:rgba(15,23,42,.04);
@@ -1063,6 +1179,22 @@
     text-decoration:none;
     color:white;
     font-weight:900;
+}
+
+.commission-row.voucher{
+    background:#dcfce7;
+}
+
+.commission-row.voucher b{
+    color:#16a34a;
+}
+
+.commission-row.final{
+    background:#dbeafe;
+}
+
+.commission-row.final b{
+    color:#2563eb;
 }
 
 .status-btn.online{background:#16a34a;}

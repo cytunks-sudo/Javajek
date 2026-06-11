@@ -7,25 +7,22 @@
     <div class="page-head">
         <div>
             <h2>⚙️ Pengaturan Aplikasi</h2>
-            <p>Atur tema, radius, saldo driver, komisi, logo, icon, dan banner.</p>
+            <p>Atur nama aplikasi, warna tema, radius, saldo, komisi, logo, favicon, icon map, dan banner.</p>
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="toast-success">
-            ✅ {{ session('success') }}
-        </div>
-    @endif
-
-    <form method="POST"
+       <form method="POST"
           action="/admin/app-appearance"
           enctype="multipart/form-data">
 
         @csrf
 
-        <div class="section-card">
+        <div class="section-card main-setting-card">
             <div class="section-title">
-                <h3>🎨 Tampilan Utama</h3>
+                <div>
+                    <h3>🎨 Tampilan Utama</h3>
+                    <p>Nama aplikasi dan warna utama dari App Setting.</p>
+                </div>
             </div>
 
             <div class="form-grid compact-grid">
@@ -43,8 +40,8 @@
                                name="primary_color"
                                value="{{ old('primary_color', $setting->primary_color ?? '#f97316') }}">
 
-                        <span style="background:{{ $setting->primary_color ?? '#f97316' }}">
-                            {{ $setting->primary_color ?? '#f97316' }}
+                        <span style="background:{{ old('primary_color', $setting->primary_color ?? '#f97316') }}">
+                            {{ old('primary_color', $setting->primary_color ?? '#f97316') }}
                         </span>
                     </div>
                 </div>
@@ -56,8 +53,8 @@
                                name="secondary_color"
                                value="{{ old('secondary_color', $setting->secondary_color ?? '#fb923c') }}">
 
-                        <span style="background:{{ $setting->secondary_color ?? '#fb923c' }}">
-                            {{ $setting->secondary_color ?? '#fb923c' }}
+                        <span style="background:{{ old('secondary_color', $setting->secondary_color ?? '#fb923c') }}">
+                            {{ old('secondary_color', $setting->secondary_color ?? '#fb923c') }}
                         </span>
                     </div>
                 </div>
@@ -68,42 +65,51 @@
 
             <div class="section-card">
                 <div class="section-title">
-                    <h3>📍 Radius</h3>
+                    <div>
+                        <h3>📍 Radius</h3>
+                        <p>Jarak pencarian driver dan merchant.</p>
+                    </div>
                 </div>
 
                 <div class="form-stack">
                     <div class="form-group mini">
                         <label>Driver di Peta Customer</label>
                         <input type="number"
-                               min="1"
+                               min="0"
+                               step="0.1"
                                name="customer_driver_radius"
                                value="{{ old('customer_driver_radius', $setting->customer_driver_radius ?? 5) }}">
-                        <small>Dalam kilometer</small>
+                        <small>Dalam kilometer.</small>
                     </div>
 
                     <div class="form-group mini">
-                        <label>Cari Driver Ride/Car</label>
+                        <label>Cari Driver Ride / Car</label>
                         <input type="number"
-                               min="1"
+                               min="0"
+                               step="0.1"
                                name="ride_search_radius"
                                value="{{ old('ride_search_radius', $setting->ride_search_radius ?? 10) }}">
-                        <small>Dalam kilometer</small>
+                        <small>Radius pencarian driver saat pesan ojek/mobil.</small>
                     </div>
 
                     <div class="form-group mini">
                         <label>Merchant Terdekat</label>
                         <input type="number"
-                               min="1"
+                               min="0"
+                               step="0.1"
                                name="merchant_radius"
                                value="{{ old('merchant_radius', $setting->merchant_radius ?? 20) }}">
-                        <small>Dalam kilometer</small>
+                        <small>Radius daftar merchant di halaman customer.</small>
                     </div>
                 </div>
             </div>
 
             <div class="section-card wallet-card">
                 <div class="section-title">
-                    <h3>💰 Saldo & Komisi</h3>
+                    <div>
+                        <h3>💰 Saldo & Komisi</h3>
+                        <p>Pengaturan saldo minimum dan potongan komisi.</p>
+                    </div>
                 </div>
 
                 <div class="form-stack">
@@ -164,49 +170,91 @@
         </div>
 
         <div class="section-card">
-            <div class="section-title">
-                <h3>🖼️ Logo & Gambar</h3>
+            <div class="section-title media-title">
+                <div>
+                    <h3>🖼️ Logo, Favicon, Icon & Banner</h3>
+                    <p>Upload gambar untuk setiap halaman. Semua akan tersimpan di App Setting.</p>
+                </div>
             </div>
 
             <div class="upload-grid">
 
                 @foreach([
-                    'login_logo' => ['Logo Login', 'Halaman login.'],
-                    'customer_logo' => ['Logo Customer', 'Halaman customer.'],
-                    'driver_logo' => ['Logo Driver', 'Halaman driver.'],
-                    'merchant_logo' => ['Logo Merchant', 'Halaman merchant.'],
-                    'driver_map_icon' => ['Icon Driver Map', 'Icon kendaraan peta.'],
-                    'home_banner' => ['Banner Home', 'Banner utama customer.']
+                    'login_logo' => [
+                        'title' => 'Logo Login / Admin',
+                        'desc' => 'Dipakai di login dan panel admin.',
+                        'icon' => '🔐',
+                        'type' => 'logo'
+                    ],
+                    'customer_logo' => [
+                        'title' => 'Logo Customer',
+                        'desc' => 'Dipakai di halaman customer.',
+                        'icon' => '👤',
+                        'type' => 'logo'
+                    ],
+                    'driver_logo' => [
+                        'title' => 'Logo Driver',
+                        'desc' => 'Dipakai di halaman driver.',
+                        'icon' => '🛵',
+                        'type' => 'logo'
+                    ],
+                    'merchant_logo' => [
+                        'title' => 'Logo Merchant',
+                        'desc' => 'Dipakai di halaman merchant.',
+                        'icon' => '🏪',
+                        'type' => 'logo'
+                    ],
+                    'favicon' => [
+                        'title' => 'Favicon',
+                        'desc' => 'Icon kecil pada tab browser. Rekomendasi PNG 32x32 / 64x64.',
+                        'icon' => '🌐',
+                        'type' => 'favicon'
+                    ],
+                    'driver_map_icon' => [
+                        'title' => 'Icon Driver Map',
+                        'desc' => 'Icon kendaraan pada peta.',
+                        'icon' => '📍',
+                        'type' => 'icon'
+                    ],
+                    'home_banner' => [
+                        'title' => 'Banner Home',
+                        'desc' => 'Banner utama di halaman customer.',
+                        'icon' => '🖼️',
+                        'type' => 'banner'
+                    ],
                 ] as $field => $info)
 
-                    @php
-                        $label = $info[0];
-                        $desc = $info[1];
-                    @endphp
+                    <div class="upload-card {{ $info['type'] }}">
+                        <div class="upload-card-head">
+                            <div class="upload-icon">{{ $info['icon'] }}</div>
 
-                    <div class="upload-card">
-                        <div class="preview-box">
+                            <div>
+                                <strong>{{ $info['title'] }}</strong>
+                                <p>{{ $info['desc'] }}</p>
+                            </div>
+                        </div>
+
+                        <div class="preview-box {{ $info['type'] }}">
                             @if(!empty($setting->$field))
-                                <img src="{{ asset('storage/'.$setting->$field) }}" alt="{{ $label }}">
+                                <img src="{{ asset('storage/'.$setting->$field) }}"
+                                     alt="{{ $info['title'] }}">
                             @else
-                                <div class="empty-preview">No Image</div>
+                                <div class="empty-preview">
+                                    <span>{{ $info['icon'] }}</span>
+                                    <small>Belum ada gambar</small>
+                                </div>
                             @endif
                         </div>
 
-                        <div class="upload-row">
-                            <strong>{{ $label }}</strong>
-
+                        <div class="upload-action">
                             <label class="upload-btn">
-                                Ganti
+                                Pilih File
                                 <input type="file"
                                        name="{{ $field }}"
+                                       accept="image/png,image/jpeg,image/jpg,image/webp,image/x-icon,image/vnd.microsoft.icon"
                                        onchange="previewImage(event, 'preview-{{ $field }}')">
                             </label>
                         </div>
-
-                        <p class="upload-desc">
-                            {{ $desc }}
-                        </p>
 
                         <div id="preview-{{ $field }}" class="new-preview"></div>
                     </div>
@@ -234,7 +282,7 @@
             </div>
 
             <div class="save-area">
-                <button class="save-btn">
+                <button type="submit" class="save-btn">
                     💾 Simpan Setting
                 </button>
             </div>
@@ -246,6 +294,13 @@
 </div>
 
 <style>
+:root{
+    --app-primary: {{ $setting->primary_color ?? '#f97316' }};
+    --app-secondary: {{ $setting->secondary_color ?? '#fb923c' }};
+    --app-soft: {{ ($setting->secondary_color ?? '#fb923c') }}22;
+    --app-soft-2: {{ ($setting->secondary_color ?? '#fb923c') }}33;
+}
+
 .appearance-page{
     display:flex;
     flex-direction:column;
@@ -255,18 +310,21 @@
 .page-head,
 .section-card{
     background:white;
-    border:1px solid #fed7aa;
+    border:1px solid color-mix(in srgb, var(--app-secondary) 35%, white);
     border-radius:24px;
-    box-shadow:0 10px 24px rgba(15,23,42,.06);
+    box-shadow:0 10px 26px rgba(15,23,42,.06);
 }
 
 .page-head{
     padding:20px;
+    background:
+        radial-gradient(circle at top right, color-mix(in srgb, var(--app-secondary) 22%, transparent), transparent 34%),
+        white;
 }
 
 .page-head h2{
     margin:0;
-    color:#9a3412;
+    color:var(--app-primary);
     font-size:26px;
     font-weight:900;
 }
@@ -275,6 +333,7 @@
     margin:5px 0 0;
     color:#6b7280;
     font-size:13px;
+    line-height:1.4;
 }
 
 .section-card{
@@ -283,14 +342,25 @@
 }
 
 .section-title{
-    margin-bottom:12px;
+    margin-bottom:14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
 }
 
 .section-title h3{
     margin:0;
-    color:#9a3412;
+    color:var(--app-primary);
     font-size:18px;
     font-weight:900;
+}
+
+.section-title p{
+    margin:4px 0 0;
+    color:#6b7280;
+    font-size:12px;
+    line-height:1.35;
 }
 
 .form-grid{
@@ -305,7 +375,7 @@
 
 .dual-section{
     display:grid;
-    grid-template-columns:1fr 1.3fr;
+    grid-template-columns:1fr 1.35fr;
     gap:14px;
 }
 
@@ -318,7 +388,7 @@
 .form-group label{
     display:block;
     margin-bottom:6px;
-    color:#9a3412;
+    color:var(--app-primary);
     font-weight:900;
     font-size:12px;
 }
@@ -327,8 +397,8 @@
 .form-group input[type="number"]{
     width:100%;
     height:44px;
-    border:none;
-    background:#fff7ed;
+    border:1px solid color-mix(in srgb, var(--app-secondary) 25%, white);
+    background:color-mix(in srgb, var(--app-secondary) 10%, white);
     border-radius:14px;
     padding:0 13px;
     font-weight:800;
@@ -348,7 +418,8 @@
 }
 
 .form-group input:focus{
-    box-shadow:0 0 0 3px rgba(249,115,22,.14);
+    border-color:var(--app-primary);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--app-primary) 18%, transparent);
 }
 
 .color-row{
@@ -386,9 +457,9 @@
 }
 
 .info-note{
-    background:#fff7ed;
-    border:1px dashed #fdba74;
-    color:#9a3412;
+    background:color-mix(in srgb, var(--app-secondary) 12%, white);
+    border:1px dashed color-mix(in srgb, var(--app-secondary) 45%, white);
+    color:var(--app-primary);
     font-size:12px;
     line-height:1.4;
     padding:10px 12px;
@@ -398,27 +469,76 @@
 
 .upload-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-    gap:12px;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:14px;
 }
 
 .upload-card{
-    background:#fff7ed;
-    border:1px solid #fed7aa;
-    border-radius:18px;
-    padding:10px;
+    background:linear-gradient(180deg, color-mix(in srgb, var(--app-secondary) 9%, white), white);
+    border:1px solid color-mix(in srgb, var(--app-secondary) 34%, white);
+    border-radius:22px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.upload-card-head{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    min-height:58px;
+}
+
+.upload-icon{
+    width:38px;
+    height:38px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,var(--app-primary),var(--app-secondary));
+    color:white;
+    box-shadow:0 8px 18px color-mix(in srgb, var(--app-primary) 25%, transparent);
+    flex-shrink:0;
+}
+
+.upload-card-head strong{
+    display:block;
+    color:var(--app-primary);
+    font-size:13px;
+    font-weight:900;
+}
+
+.upload-card-head p{
+    margin:3px 0 0;
+    color:#6b7280;
+    font-size:10.5px;
+    line-height:1.35;
 }
 
 .preview-box{
-    height:82px;
+    height:104px;
     background:white;
-    border-radius:14px;
-    border:1px dashed #fdba74;
+    border-radius:18px;
+    border:1px dashed color-mix(in srgb, var(--app-secondary) 55%, white);
     display:flex;
     align-items:center;
     justify-content:center;
     overflow:hidden;
-    margin-bottom:9px;
+}
+
+.preview-box.logo,
+.preview-box.icon{
+    height:104px;
+}
+
+.preview-box.favicon{
+    height:104px;
+}
+
+.preview-box.banner{
+    height:120px;
 }
 
 .preview-box img{
@@ -427,41 +547,46 @@
     object-fit:contain;
 }
 
+.preview-box.favicon img{
+    width:52px;
+    height:52px;
+    object-fit:contain;
+}
+
+.preview-box.banner img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
 .empty-preview{
+    text-align:center;
     color:#9ca3af;
     font-weight:900;
     font-size:11px;
 }
 
-.upload-row{
+.empty-preview span{
+    display:block;
+    font-size:25px;
+    margin-bottom:4px;
+}
+
+.upload-action{
     display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:8px;
-}
-
-.upload-row strong{
-    color:#9a3412;
-    font-size:12px;
-    font-weight:900;
-}
-
-.upload-desc{
-    margin:6px 0 0;
-    color:#6b7280;
-    font-size:10px;
-    line-height:1.35;
+    justify-content:flex-end;
 }
 
 .upload-btn{
-    background:#f97316;
+    background:linear-gradient(135deg,var(--app-primary),var(--app-secondary));
     color:white;
-    padding:7px 10px;
-    border-radius:11px;
+    padding:9px 12px;
+    border-radius:13px;
     font-size:11px;
     font-weight:900;
     cursor:pointer;
     white-space:nowrap;
+    box-shadow:0 8px 18px color-mix(in srgb, var(--app-primary) 22%, transparent);
 }
 
 .upload-btn input{
@@ -469,12 +594,12 @@
 }
 
 .new-preview{
-    margin-top:7px;
+    margin-top:2px;
 }
 
 .new-preview small{
     display:block;
-    margin-bottom:4px;
+    margin-bottom:5px;
     color:#16a34a;
     font-size:11px;
     font-weight:900;
@@ -482,11 +607,11 @@
 
 .new-preview img{
     width:100%;
-    max-height:78px;
+    max-height:90px;
     object-fit:contain;
-    border-radius:12px;
+    border-radius:14px;
     background:white;
-    border:1px solid #fed7aa;
+    border:1px solid color-mix(in srgb, var(--app-secondary) 35%, white);
     padding:5px;
 }
 
@@ -536,7 +661,7 @@
 }
 
 .maintenance-toggle input:checked + span{
-    background:#f97316;
+    background:linear-gradient(135deg,var(--app-primary),var(--app-secondary));
 }
 
 .maintenance-toggle input:checked + span::after{
@@ -544,7 +669,7 @@
 }
 
 .maintenance-toggle b{
-    color:#9a3412;
+    color:var(--app-primary);
     display:block;
     font-size:13px;
 }
@@ -561,13 +686,13 @@
 
 .save-btn{
     border:none;
-    background:linear-gradient(135deg,#f97316,#fb923c);
+    background:linear-gradient(135deg,var(--app-primary),var(--app-secondary));
     color:white;
     padding:15px 24px;
     border-radius:18px;
     font-weight:900;
     cursor:pointer;
-    box-shadow:0 10px 24px rgba(249,115,22,.26);
+    box-shadow:0 10px 24px color-mix(in srgb, var(--app-primary) 25%, transparent);
 }
 
 .toast-success{
@@ -578,7 +703,20 @@
     font-weight:900;
 }
 
-@media(max-width:900px){
+.toast-error{
+    background:#fee2e2;
+    color:#991b1b;
+    padding:13px 16px;
+    border-radius:15px;
+    font-weight:800;
+}
+
+.toast-error ul{
+    margin:8px 0 0;
+    padding-left:20px;
+}
+
+@media(max-width:1000px){
     .compact-grid,
     .dual-section,
     .bottom-row{
@@ -588,19 +726,48 @@
     .commission-grid{
         grid-template-columns:1fr;
     }
-}
 
-@media(max-width:640px){
-    .page-head h2{
-        font-size:23px;
-    }
-
-    .upload-grid{
-        grid-template-columns:1fr 1fr;
+    .save-area{
+        justify-content:stretch;
     }
 
     .save-btn{
         width:100%;
+    }
+}
+
+@media(max-width:640px){
+    .page-head{
+        padding:17px;
+        border-radius:22px;
+    }
+
+    .page-head h2{
+        font-size:23px;
+    }
+
+    .section-card{
+        padding:14px;
+        border-radius:22px;
+    }
+
+    .upload-grid{
+        grid-template-columns:1fr;
+    }
+
+    .upload-card{
+        border-radius:20px;
+    }
+
+    .preview-box,
+    .preview-box.logo,
+    .preview-box.icon,
+    .preview-box.favicon{
+        height:112px;
+    }
+
+    .preview-box.banner{
+        height:130px;
     }
 }
 </style>
